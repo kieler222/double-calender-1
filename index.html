@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Calendar Trading">
+<meta name="theme-color" content="#0a0e1a">
+<title>Calendar Trading Companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  
+  :root {
+    --bg: #0a0e1a;
+    --bg-elev: #131829;
+    --bg-card: #1a2038;
+    --border: #2a3354;
+    --text: #e8ecf5;
+    --text-dim: #8892b0;
+    --accent: #d4a574;
+    --accent-glow: #e8c39e;
+    --success: #4ade80;
+    --danger: #f87171;
+    --warning: #fbbf24;
+    --info: #60a5fa;
+  }
+  
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  body {
+    padding: env(safe-area-inset-top) 0 calc(70px + env(safe-area-inset-bottom)) 0;
+    background-image: 
+      radial-gradient(circle at 20% 10%, rgba(212, 165, 116, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(96, 165, 250, 0.05) 0%, transparent 40%);
+  }
+  
+  /* Header */
+  .header {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10, 14, 26, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  
+  .header h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  
+  .header h1 .accent {
+    color: var(--accent);
+    font-style: italic;
+    font-weight: 500;
+  }
+  
+  .header .sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 400;
+  }
+  
+  /* Bottom Navigation */
+  .nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(19, 24, 41, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .nav-item {
+    flex: 1;
+    padding: 14px 8px 12px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: color 0.2s;
+    border: none;
+    background: none;
+  }
+  
+  .nav-item.active { color: var(--accent); }
+  
+  .nav-item svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+    margin: 0 auto 4px;
+  }
+  
+  /* Pages */
+  .page { display: none; padding: 20px; max-width: 720px; margin: 0 auto; }
+  .page.active { display: block; }
+  
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  
+  .card-title {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .card-title .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  
+  /* Step content */
+  .step-text {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  
+  .step-text strong {
+    color: var(--accent-glow);
+    font-weight: 600;
+  }
+  
+  .checklist {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0;
+  }
+  
+  .checklist li {
+    padding: 10px 12px 10px 36px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    position: relative;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  
+  .checklist li::before {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 14px;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--accent);
+    border-radius: 4px;
+    background: transparent;
+  }
+  
+  .checklist li.done {
+    color: var(--text-dim);
+    text-decoration: line-through;
+  }
+  
+  .checklist li.done::before {
+    background: var(--accent);
+  }
+  
+  .checklist li.done::after {
+    content: '✓';
+    position: absolute;
+    left: 14px;
+    top: 11px;
+    color: var(--bg);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  
+  .info-box {
+    background: rgba(96, 165, 250, 0.08);
+    border-left: 3px solid var(--info);
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin: 10px 0;
+    font-size: 13px;
+    color: var(--text);
+  }
+  
+  .warn-box {
+    background: rgba(251, 191, 36, 0.08);
+    border-left: 3px solid var(--warning);
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin: 10px 0;
+    font-size: 13px;
+    color: var(--text);
+  }
+  
+  .key-value {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  
+  .key-value:last-child { border-bottom: none; }
+  
+  .key-value .key { color: var(--text-dim); }
+  .key-value .val { 
+    color: var(--text); 
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+  }
+  
+  /* Form Elements */
+  .form-group {
+    margin-bottom: 16px;
+  }
+  
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  
+  .form-group textarea {
+    min-height: 80px;
+    font-family: 'Fraunces', serif;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  
+  /* Buttons */
+  .btn {
+    width: 100%;
+    padding: 14px 20px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Fraunces', serif;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.05s;
+  }
+  
+  .btn:active { transform: scale(0.98); opacity: 0.9; }
+  
+  .btn-secondary {
+    background: var(--bg-elev);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  
+  .btn-danger {
+    background: var(--danger);
+    color: white;
+  }
+  
+  /* Trade List */
+  .trade-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .trade-item.win {
+    border-left: 3px solid var(--success);
+  }
+  
+  .trade-item.loss {
+    border-left: 3px solid var(--danger);
+  }
+  
+  .trade-item.open {
+    border-left: 3px solid var(--info);
+  }
+  
+  .trade-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  
+  .trade-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  
+  .trade-status {
+    font-size: 10px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+  }
+  
+  .trade-status.win { background: rgba(74, 222, 128, 0.15); color: var(--success); }
+  .trade-status.loss { background: rgba(248, 113, 113, 0.15); color: var(--danger); }
+  .trade-status.open { background: rgba(96, 165, 250, 0.15); color: var(--info); }
+  
+  .trade-meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+  }
+  
+  .trade-meta-item .label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  .trade-meta-item .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+  
+  .trade-meta-item .value.pos { color: var(--success); }
+  .trade-meta-item .value.neg { color: var(--danger); }
+  
+  /* Stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .stat-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  
+  .stat-box .label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 6px;
+  }
+  
+  .stat-box .value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  
+  .stat-box .value.pos { color: var(--success); }
+  .stat-box .value.neg { color: var(--danger); }
+  
+  .stat-box .sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    justify-content: center;
+    align-items: flex-end;
+  }
+  
+  .modal.show { display: flex; }
+  
+  .modal-content {
+    background: var(--bg-elev);
+    width: 100%;
+    max-width: 720px;
+    max-height: 92vh;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px calc(40px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+  }
+  
+  .modal-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  
+  .modal-title {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+  
+  /* Section divider */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    margin: 16px 0 12px;
+    gap: 12px;
+  }
+  
+  .section-divider .line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  
+  .section-divider .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+  
+  /* Quick reference */
+  .quick-ref {
+    background: linear-gradient(135deg, rgba(212, 165, 116, 0.1) 0%, rgba(96, 165, 250, 0.05) 100%);
+    border: 1px solid rgba(212, 165, 116, 0.2);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .quick-ref-title {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--accent);
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+  }
+  
+  .quick-ref-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+    font-size: 13px;
+  }
+  
+  .quick-ref-grid .label {
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  
+  .quick-ref-grid .value {
+    color: var(--text);
+    font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: right;
+    font-size: 12px;
+  }
+  
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+  }
+  
+  .empty .emoji {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+  
+  .empty p {
+    font-style: italic;
+    font-size: 15px;
+  }
+  
+  /* Accordion for steps */
+  .step-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  
+  .step-card.expanded {
+    border-color: var(--accent);
+  }
+  
+  .step-header {
+    padding: 16px 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .step-num {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-elev);
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .step-card.expanded .step-num {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  
+  .step-title {
+    flex: 1;
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  
+  .step-chevron {
+    color: var(--text-dim);
+    font-size: 14px;
+    transform: rotate(0deg);
+    transition: transform 0.3s;
+  }
+  
+  .step-card.expanded .step-chevron {
+    transform: rotate(180deg);
+  }
+  
+  .step-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+  }
+  
+  .step-card.expanded .step-body {
+    max-height: 2000px;
+  }
+  
+  .step-body-inner {
+    padding: 0 18px 18px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  
+  /* iOS install hint */
+  .install-hint {
+    background: var(--bg-card);
+    border: 1px dashed var(--accent);
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  
+  .install-hint strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  
+  /* Greek display */
+  .formula {
+    background: var(--bg-elev);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent-glow);
+    margin: 8px 0;
+    border: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Calendar <span class="accent">Trading</span></h1>
+  <div class="sub">SPY Double Calendar Companion</div>
+</div>
+
+<!-- GUIDE PAGE -->
+<div class="page active" id="page-guide">
+  
+  <div class="quick-ref">
+    <div class="quick-ref-title">— Setup Reference Card —</div>
+    <div class="quick-ref-grid">
+      <span class="label">Underlying</span><span class="value">SPY</span>
+      <span class="label">Short DTE</span><span class="value">7–10 Tage</span>
+      <span class="label">Long DTE</span><span class="value">14–17 Tage</span>
+      <span class="label">Strike-Delta</span><span class="value">20–25</span>
+      <span class="label">Eintritt</span><span class="value">Di / Mi</span>
+      <span class="label">Profit Target</span><span class="value">20–25%</span>
+      <span class="label">Hard Stop</span><span class="value">-50% Debit</span>
+      <span class="label">VIX-Filter</span><span class="value">&lt; 25</span>
+      <span class="label">Exit</span><span class="value">2–3T vor Exp</span>
+      <span class="label">Position Size</span><span class="value">2–3% Konto</span>
+    </div>
+  </div>
+
+  <div class="section-divider"><div class="line"></div><span class="label">Vor dem Trade</span><div class="line"></div></div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div class="step-title">Marktcheck</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <p class="step-text">Bevor du den Trade aufsetzt, prüfe diese vier Punkte:</p>
+        <ul class="checklist">
+          <li>VIX checken — muss unter 25 sein (idealerweise 13–20)</li>
+          <li>SPY-Range der letzten 24h — keine extremen Gaps oder Bewegungen</li>
+          <li>Wirtschaftskalender — kein FOMC, CPI, NFP in den nächsten Tagen</li>
+          <li>Wochentag: Dienstag oder Mittwoch (für optimales Theta-Wochenende)</li>
+        </ul>
+        <div class="info-box"><strong>Warum?</strong> Hohe Vola = Vega-Crush-Risiko zerstört die Long-Seite. Big Events = unkalkulierbares Gamma. Mo/Fr = ungünstige Theta-Verteilung.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div class="step-title">Strike-Auswahl in IBKR</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <p class="step-text">Optionschain öffnen, Delta-Spalte aktivieren (Zahnrad-Symbol → Spalten → Delta).</p>
+        <ul class="checklist">
+          <li>Expiration wählen: 7–10 DTE (für Shorts)</li>
+          <li>Put-Seite: Such die Reihe mit Delta zwischen -0.20 und -0.25</li>
+          <li>Call-Seite: Such die Reihe mit Delta zwischen +0.20 und +0.25</li>
+          <li>Notiere die Strikes (z.B. Put 724 / Call 772 bei SPY $750)</li>
+          <li>Expiration für Longs: 14–17 DTE wählen</li>
+        </ul>
+        <div class="warn-box"><strong>Skew beachten:</strong> Put-Strike liegt typischerweise weiter weg vom Spot als Call-Strike. Das ist normal.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div class="step-title">Position-Size berechnen</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <p class="step-text">Maximum Risk = Gesamt-Debit. Dieser darf nicht mehr als 2–3% deines Kontos sein.</p>
+        <div class="formula">Max Kontrakte = (Konto × 0.02) ÷ Debit_pro_Spread</div>
+        <p class="step-text">Beispiel: $10.000 Konto, Debit $200 → max. 1 Kontrakt pro Seite ($200 × 2 Seiten = $400 = 4% — schon grenzwertig).</p>
+        <div class="info-box">Bei kleinen Konten: Lieber 1 Kontrakt und auf bessere Strikes warten, als zu viele Kontrakte zu früh.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"><div class="line"></div><span class="label">Trade aufsetzen</span><div class="line"></div></div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div class="step-title">Put-Calendar eröffnen</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <p class="step-text">Beide Calendars werden <strong>einzeln</strong> aufgesetzt (saubere Margin & Management).</p>
+        <ul class="checklist">
+          <li>In IBKR: Strategy Builder → Calendar Spread auswählen</li>
+          <li>Long Put (14 DTE) + Short Put (10 DTE), beide gleicher Strike</li>
+          <li>Order-Type: Limit Debit auf Mid-Price</li>
+          <li>Quantity: 1 Kontrakt (für ersten Trade)</li>
+          <li>Time-in-Force: Day</li>
+          <li>Submit, 1–2 Min auf Fill warten</li>
+        </ul>
+        <div class="warn-box">Falls kein Fill: Limit um $0.01 erhöhen, nochmal probieren. Niemals Market Order!</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">5</div>
+      <div class="step-title">Call-Calendar eröffnen</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <p class="step-text">Direkt nach Fill von Spread 1 die zweite Seite öffnen.</p>
+        <ul class="checklist">
+          <li>Gleiche Prozedur: Strategy Builder → Calendar Spread</li>
+          <li>Long Call (14 DTE) + Short Call (10 DTE), gleicher Strike</li>
+          <li>Limit Debit auf Mid-Price</li>
+          <li>Submit, auf Fill warten</li>
+          <li>Echte Debits beider Spreads notieren!</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">6</div>
+      <div class="step-title">Take-Profit-Orders setzen</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <p class="step-text">Sofort nach Eröffnung: GTC-Closing-Orders für beide Seiten.</p>
+        <div class="formula">TP-Preis = Debit × 1.20  (für 20% Target)</div>
+        <p class="step-text">Beispiel: Put-Calendar $0.85 → Limit Credit $1.02 für Closing-Combo</p>
+        <ul class="checklist">
+          <li>Rechtsklick auf Position → Close Position oder Combo bauen</li>
+          <li>Sell-to-close Long + Buy-to-close Short als Combo</li>
+          <li>Limit Credit setzen (Debit × 1.20)</li>
+          <li>TIF: GTC (Good Till Cancelled)</li>
+          <li>Submit — läuft im Hintergrund</li>
+          <li>Selbe Prozedur für zweite Seite</li>
+        </ul>
+        <div class="info-box">Bei kleinen Positionen (1–2 Kontrakte): Target auf 25–30% setzen wegen Gebühren-Anteil.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">7</div>
+      <div class="step-title">Alerts einrichten</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <p class="step-text">In IBKR: Rechtsklick auf SPY → Alerts → Create Alert. Diese 4 Alerts setzen:</p>
+        <ul class="checklist">
+          <li>SPY ≤ Put-Strike (z.B. SPY ≤ 724) → "Put-Strike erreicht"</li>
+          <li>SPY ≥ Call-Strike (z.B. SPY ≥ 772) → "Call-Strike erreicht"</li>
+          <li>Position P&L ≤ -50% des Gesamt-Debits → "Hard Stop"</li>
+          <li>Kalender-Erinnerung 2 Tage vor Short-Expiration</li>
+        </ul>
+        <div class="warn-box">Push Notifications auf iPhone-IBKR-App aktivieren!</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">8</div>
+      <div class="step-title">Im Trade-Log dokumentieren</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <p class="step-text">Wechsle in den Tab "Neuer Trade" und erfasse alle Details. <strong>Macht den Unterschied zwischen erfolgreich und erfolglos werden.</strong></p>
+        <ul class="checklist">
+          <li>SPY-Spot bei Eröffnung notieren</li>
+          <li>VIX, IV der ATM-Option</li>
+          <li>Beide Strikes, Deltas, Debits</li>
+          <li>Profit-Target und Stop-Loss-Level</li>
+          <li>Erwartete Marktbedingungen / Trade-These</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"><div class="line"></div><span class="label">Trade managen</span><div class="line"></div></div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">9</div>
+      <div class="step-title">Tägliche Routine</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <p class="step-text">1× pro Tag (idealerweise morgens vor US-Open):</p>
+        <ul class="checklist">
+          <li>P&L beider Spreads checken</li>
+          <li>SPY-Bewegung zu den Strikes evaluieren</li>
+          <li>IV-Veränderung beobachten</li>
+          <li>Alerts noch aktiv? GTC-Orders noch da?</li>
+        </ul>
+        <div class="info-box">Nicht ständig drauf starren! Calendars brauchen Zeit. Übermäßiges Checken führt zu emotionalen Entscheidungen.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">10</div>
+      <div class="step-title">Exit-Szenarien</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <p class="step-text"><strong>Szenario A: Take-Profit erreicht</strong></p>
+        <p class="step-text">GTC-Order füllt automatisch. Spread im Log auf "Closed - Win" setzen.</p>
+        
+        <p class="step-text" style="margin-top: 12px;"><strong>Szenario B: Strike-Touch</strong></p>
+        <ul class="checklist">
+          <li>Betroffene Seite SOFORT manuell schließen</li>
+          <li>Andere Seite prüfen: Wertvoll? → laufen lassen oder schließen</li>
+          <li>Im Log dokumentieren</li>
+        </ul>
+        
+        <p class="step-text" style="margin-top: 12px;"><strong>Szenario C: -50% Hard Stop</strong></p>
+        <ul class="checklist">
+          <li>Beide Seiten manuell schließen</li>
+          <li>Trade-These nachträglich analysieren: Was lief schief?</li>
+        </ul>
+        
+        <p class="step-text" style="margin-top: 12px;"><strong>Szenario D: 2 Tage vor Expiration</strong></p>
+        <ul class="checklist">
+          <li>Trade schließen — unabhängig vom P&L</li>
+          <li>Gamma-Risiko in letzten Tagen ist nicht wert</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">11</div>
+      <div class="step-title">Nach dem Trade</div>
+      <div class="step-chevron">▼</div>
+    </div>
+    <div class="step-body">
+      <div class="step-body-inner">
+        <ul class="checklist">
+          <li>Trade im Log auf "Closed" setzen</li>
+          <li>Tatsächlichen P&L eintragen (netto nach Gebühren)</li>
+          <li>Lessons Learned notieren — was würdest du anders machen?</li>
+          <li>Nach 10 Trades: Statistiken-Tab checken, Muster identifizieren</li>
+        </ul>
+        <div class="info-box">Der wertvollste Teil der Strategie ist die Reflexion. 1 Minute pro Trade reicht — aber konsistent machen.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="install-hint">
+    <strong>iPhone Tipp:</strong> Diese Seite über Safari öffnen → Teilen-Button → "Zum Home-Bildschirm" hinzufügen. Dann läuft die App wie eine native App, auch offline. Deine Trades werden im Browser gespeichert.
+  </div>
+
+</div>
+
+<!-- NEW TRADE PAGE -->
+<div class="page" id="page-new">
+  <div class="card">
+    <div class="card-title"><span class="num">+</span> Neuer Trade</div>
+    
+    <div class="form-group">
+      <label>Datum</label>
+      <input type="date" id="trade-date">
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>SPY Spot</label>
+        <input type="number" step="0.01" id="spy-spot" placeholder="750.00">
+      </div>
+      <div class="form-group">
+        <label>VIX</label>
+        <input type="number" step="0.1" id="vix" placeholder="17.0">
+      </div>
+    </div>
+    
+    <div class="section-divider"><div class="line"></div><span class="label">Put-Calendar</span><div class="line"></div></div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>Put Strike</label>
+        <input type="number" step="1" id="put-strike" placeholder="724">
+      </div>
+      <div class="form-group">
+        <label>Put Delta</label>
+        <input type="number" step="0.01" id="put-delta" placeholder="-0.22">
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label>Put-Calendar Debit ($)</label>
+      <input type="number" step="0.01" id="put-debit" placeholder="0.85">
+    </div>
+    
+    <div class="section-divider"><div class="line"></div><span class="label">Call-Calendar</span><div class="line"></div></div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>Call Strike</label>
+        <input type="number" step="1" id="call-strike" placeholder="772">
+      </div>
+      <div class="form-group">
+        <label>Call Delta</label>
+        <input type="number" step="0.01" id="call-delta" placeholder="0.22">
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label>Call-Calendar Debit ($)</label>
+      <input type="number" step="0.01" id="call-debit" placeholder="1.12">
+    </div>
+    
+    <div class="section-divider"><div class="line"></div><span class="label">DTE</span><div class="line"></div></div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>Short DTE</label>
+        <input type="number" step="1" id="short-dte" placeholder="10">
+      </div>
+      <div class="form-group">
+        <label>Long DTE</label>
+        <input type="number" step="1" id="long-dte" placeholder="14">
+      </div>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>Kontrakte</label>
+        <input type="number" step="1" id="contracts" value="1" placeholder="1">
+      </div>
+      <div class="form-group">
+        <label>TP % Target</label>
+        <input type="number" step="1" id="tp-target" value="20" placeholder="20">
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label>Trade-These / Notizen</label>
+      <textarea id="trade-notes" placeholder="Warum dieser Trade jetzt? Marktlage, Erwartungen, Besonderheiten..."></textarea>
+    </div>
+    
+    <button class="btn" onclick="saveTrade()">Trade speichern</button>
+  </div>
+</div>
+
+<!-- TRADES LIST PAGE -->
+<div class="page" id="page-trades">
+  <div id="trades-list"></div>
+</div>
+
+<!-- STATS PAGE -->
+<div class="page" id="page-stats">
+  <div id="stats-content"></div>
+</div>
+
+<!-- TRADE DETAIL MODAL -->
+<div class="modal" id="trade-modal">
+  <div class="modal-content">
+    <div class="modal-handle"></div>
+    <div class="modal-title">
+      <span id="modal-title-text">Trade Details</span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- NAVIGATION -->
+<div class="nav">
+  <button class="nav-item active" data-page="guide" onclick="switchPage('guide')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+    Anleitung
+  </button>
+  <button class="nav-item" data-page="new" onclick="switchPage('new')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"/></svg>
+    Neu
+  </button>
+  <button class="nav-item" data-page="trades" onclick="switchPage('trades')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    Trades
+  </button>
+  <button class="nav-item" data-page="stats" onclick="switchPage('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 12l3-3 4 4 5-6"/></svg>
+    Statistik
+  </button>
+</div>
+
+<script>
+// === STATE ===
+let trades = JSON.parse(localStorage.getItem('calendar_trades') || '[]');
+let currentTradeId = null;
+
+// === INIT ===
+document.getElementById('trade-date').valueAsDate = new Date();
+renderTrades();
+renderStats();
+
+// === NAVIGATION ===
+function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelector('[data-page="' + page + '"]').classList.add('active');
+  window.scrollTo(0, 0);
+  if (page === 'trades') renderTrades();
+  if (page === 'stats') renderStats();
+}
+
+// === STEPS ACCORDION ===
+function toggleStep(card) {
+  card.classList.toggle('expanded');
+}
+
+// === SAVE TRADE ===
+function saveTrade() {
+  const trade = {
+    id: Date.now(),
+    date: document.getElementById('trade-date').value,
+    status: 'open',
+    spy_spot: parseFloat(document.getElementById('spy-spot').value) || 0,
+    vix: parseFloat(document.getElementById('vix').value) || 0,
+    put_strike: parseFloat(document.getElementById('put-strike').value) || 0,
+    put_delta: parseFloat(document.getElementById('put-delta').value) || 0,
+    put_debit: parseFloat(document.getElementById('put-debit').value) || 0,
+    call_strike: parseFloat(document.getElementById('call-strike').value) || 0,
+    call_delta: parseFloat(document.getElementById('call-delta').value) || 0,
+    call_debit: parseFloat(document.getElementById('call-debit').value) || 0,
+    short_dte: parseInt(document.getElementById('short-dte').value) || 0,
+    long_dte: parseInt(document.getElementById('long-dte').value) || 0,
+    contracts: parseInt(document.getElementById('contracts').value) || 1,
+    tp_target: parseFloat(document.getElementById('tp-target').value) || 20,
+    notes: document.getElementById('trade-notes').value,
+    total_debit: 0,
+    realized_pnl: null,
+    closed_date: null,
+    lessons: ''
+  };
+  
+  trade.total_debit = (trade.put_debit + trade.call_debit) * 100 * trade.contracts;
+  
+  if (!trade.spy_spot || !trade.put_strike || !trade.call_strike) {
+    alert('Bitte mindestens SPY Spot und beide Strikes eingeben!');
+    return;
+  }
+  
+  trades.push(trade);
+  saveTrades();
+  
+  // Reset form
+  document.getElementById('spy-spot').value = '';
+  document.getElementById('vix').value = '';
+  document.getElementById('put-strike').value = '';
+  document.getElementById('put-delta').value = '';
+  document.getElementById('put-debit').value = '';
+  document.getElementById('call-strike').value = '';
+  document.getElementById('call-delta').value = '';
+  document.getElementById('call-debit').value = '';
+  document.getElementById('short-dte').value = '';
+  document.getElementById('long-dte').value = '';
+  document.getElementById('trade-notes').value = '';
+  
+  switchPage('trades');
+}
+
+function saveTrades() {
+  localStorage.setItem('calendar_trades', JSON.stringify(trades));
+}
+
+// === RENDER TRADES ===
+function renderTrades() {
+  const list = document.getElementById('trades-list');
+  if (trades.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="emoji">📋</div><p>Noch keine Trades.<br>Eröffne deinen ersten Trade über das "Neu"-Tab.</p></div>';
+    return;
+  }
+  
+  const sorted = [...trades].sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  list.innerHTML = sorted.map(t => {
+    const status = t.status;
+    const pnl = t.realized_pnl;
+    const pnlClass = pnl > 0 ? 'pos' : pnl < 0 ? 'neg' : '';
+    const pnlText = pnl !== null ? '$' + pnl.toFixed(0) : '—';
+    const pnlPct = pnl !== null && t.total_debit > 0 ? ((pnl / t.total_debit) * 100).toFixed(0) + '%' : '';
+    
+    return `
+      <div class="trade-item ${status}" onclick="openTrade(${t.id})">
+        <div class="trade-header">
+          <div class="trade-date">${formatDate(t.date)}</div>
+          <div class="trade-status ${status}">${status === 'open' ? 'Offen' : status === 'win' ? 'Gewinn' : 'Verlust'}</div>
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-dim); margin-bottom: 8px;">
+          SPY $${t.spy_spot} · Strikes ${t.put_strike}P / ${t.call_strike}C · ${t.contracts}x
+        </div>
+        <div class="trade-meta">
+          <div class="trade-meta-item">
+            <div class="label">Debit</div>
+            <div class="value">$${t.total_debit.toFixed(0)}</div>
+          </div>
+          <div class="trade-meta-item">
+            <div class="label">P&L</div>
+            <div class="value ${pnlClass}">${pnlText}</div>
+          </div>
+          <div class="trade-meta-item">
+            <div class="label">Return</div>
+            <div class="value ${pnlClass}">${pnlPct}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// === OPEN TRADE DETAIL ===
+function openTrade(id) {
+  const t = trades.find(x => x.id === id);
+  if (!t) return;
+  currentTradeId = id;
+  
+  document.getElementById('modal-title-text').textContent = 'Trade ' + formatDate(t.date);
+  
+  const isOpen = t.status === 'open';
+  const tpPrice = ((t.put_debit + t.call_debit) * (1 + t.tp_target / 100)).toFixed(2);
+  const slPrice = -(t.total_debit * 0.5).toFixed(0);
+  
+  document.getElementById('modal-body').innerHTML = `
+    <div class="card" style="margin-bottom: 12px;">
+      <div class="card-title">Setup</div>
+      <div class="key-value"><span class="key">SPY Spot</span><span class="val">$${t.spy_spot}</span></div>
+      <div class="key-value"><span class="key">VIX</span><span class="val">${t.vix || '—'}</span></div>
+      <div class="key-value"><span class="key">Put Strike (Δ ${t.put_delta || '—'})</span><span class="val">$${t.put_strike}</span></div>
+      <div class="key-value"><span class="key">Call Strike (Δ ${t.call_delta || '—'})</span><span class="val">$${t.call_strike}</span></div>
+      <div class="key-value"><span class="key">Short / Long DTE</span><span class="val">${t.short_dte} / ${t.long_dte}</span></div>
+      <div class="key-value"><span class="key">Kontrakte</span><span class="val">${t.contracts}×</span></div>
+      <div class="key-value"><span class="key">Put-Debit</span><span class="val">$${t.put_debit.toFixed(2)}</span></div>
+      <div class="key-value"><span class="key">Call-Debit</span><span class="val">$${t.call_debit.toFixed(2)}</span></div>
+      <div class="key-value"><span class="key"><strong>Total Debit</strong></span><span class="val"><strong>$${t.total_debit.toFixed(0)}</strong></span></div>
+    </div>
+    
+    <div class="card" style="margin-bottom: 12px;">
+      <div class="card-title">Targets</div>
+      <div class="key-value"><span class="key">TP-Target (${t.tp_target}%)</span><span class="val">Combo Credit ~$${tpPrice}</span></div>
+      <div class="key-value"><span class="key">Hard Stop (-50%)</span><span class="val">P&L ≤ $${slPrice}</span></div>
+      <div class="key-value"><span class="key">Strike-Touch Alert</span><span class="val">SPY ≤${t.put_strike} oder ≥${t.call_strike}</span></div>
+    </div>
+    
+    ${t.notes ? `<div class="card" style="margin-bottom: 12px;"><div class="card-title">Trade-These</div><p style="font-size: 14px; color: var(--text); line-height: 1.6;">${escapeHtml(t.notes)}</p></div>` : ''}
+    
+    ${isOpen ? `
+      <div class="card" style="margin-bottom: 12px;">
+        <div class="card-title">Trade schließen</div>
+        <div class="form-group">
+          <label>Realisierter P&L ($, netto nach Gebühren)</label>
+          <input type="number" step="1" id="close-pnl" placeholder="z.B. 35 oder -97">
+        </div>
+        <div class="form-group">
+          <label>Lessons Learned</label>
+          <textarea id="close-lessons" placeholder="Was hast du gelernt? Was würdest du anders machen?"></textarea>
+        </div>
+        <button class="btn" onclick="closeTrade()">Trade als geschlossen markieren</button>
+      </div>
+    ` : `
+      <div class="card" style="margin-bottom: 12px;">
+        <div class="card-title">Abschluss</div>
+        <div class="key-value"><span class="key">Realisierter P&L</span><span class="val" style="color: ${t.realized_pnl > 0 ? 'var(--success)' : 'var(--danger)'}">$${t.realized_pnl?.toFixed(0)}</span></div>
+        <div class="key-value"><span class="key">Return</span><span class="val">${((t.realized_pnl / t.total_debit) * 100).toFixed(1)}%</span></div>
+        <div class="key-value"><span class="key">Geschlossen am</span><span class="val">${t.closed_date ? formatDate(t.closed_date) : '—'}</span></div>
+        ${t.lessons ? `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);"><div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-family: 'JetBrains Mono', monospace; margin-bottom: 6px;">Lessons</div><p style="font-size: 14px; color: var(--text); line-height: 1.6;">${escapeHtml(t.lessons)}</p></div>` : ''}
+      </div>
+    `}
+    
+    <button class="btn btn-danger" onclick="deleteTrade()" style="margin-top: 8px;">Trade löschen</button>
+  `;
+  
+  document.getElementById('trade-modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('trade-modal').classList.remove('show');
+  currentTradeId = null;
+}
+
+function closeTrade() {
+  const t = trades.find(x => x.id === currentTradeId);
+  if (!t) return;
+  
+  const pnl = parseFloat(document.getElementById('close-pnl').value);
+  if (isNaN(pnl)) {
+    alert('Bitte realisierten P&L eingeben');
+    return;
+  }
+  
+  t.realized_pnl = pnl;
+  t.status = pnl > 0 ? 'win' : 'loss';
+  t.closed_date = new Date().toISOString().split('T')[0];
+  t.lessons = document.getElementById('close-lessons').value;
+  
+  saveTrades();
+  closeModal();
+  renderTrades();
+  renderStats();
+}
+
+function deleteTrade() {
+  if (!confirm('Diesen Trade wirklich löschen?')) return;
+  trades = trades.filter(t => t.id !== currentTradeId);
+  saveTrades();
+  closeModal();
+  renderTrades();
+  renderStats();
+}
+
+// === STATS ===
+function renderStats() {
+  const content = document.getElementById('stats-content');
+  const closed = trades.filter(t => t.status !== 'open');
+  
+  if (closed.length === 0) {
+    content.innerHTML = '<div class="empty"><div class="emoji">📊</div><p>Noch keine abgeschlossenen Trades.<br>Statistiken erscheinen nach dem ersten Trade-Abschluss.</p></div>';
+    return;
+  }
+  
+  const wins = closed.filter(t => t.status === 'win');
+  const losses = closed.filter(t => t.status === 'loss');
+  const totalPnL = closed.reduce((sum, t) => sum + t.realized_pnl, 0);
+  const totalDebit = closed.reduce((sum, t) => sum + t.total_debit, 0);
+  const winRate = closed.length > 0 ? (wins.length / closed.length * 100) : 0;
+  const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + t.realized_pnl, 0) / wins.length : 0;
+  const avgLoss = losses.length > 0 ? losses.reduce((s, t) => s + t.realized_pnl, 0) / losses.length : 0;
+  const avgReturn = closed.length > 0 ? (totalPnL / totalDebit * 100) : 0;
+  
+  // Expectancy
+  const winRatio = wins.length / closed.length;
+  const lossRatio = losses.length / closed.length;
+  const expectancy = (winRatio * avgWin) + (lossRatio * avgLoss);
+  
+  const totalPnLClass = totalPnL > 0 ? 'pos' : 'neg';
+  
+  content.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="label">Gesamt-P&L</div>
+        <div class="value ${totalPnLClass}">$${totalPnL.toFixed(0)}</div>
+        <div class="sub">${avgReturn.toFixed(1)}% Return</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Win Rate</div>
+        <div class="value">${winRate.toFixed(0)}%</div>
+        <div class="sub">${wins.length} / ${closed.length} Trades</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Ø Gewinn</div>
+        <div class="value pos">$${avgWin.toFixed(0)}</div>
+        <div class="sub">${wins.length} Trades</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Ø Verlust</div>
+        <div class="value neg">$${avgLoss.toFixed(0)}</div>
+        <div class="sub">${losses.length} Trades</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Expectancy</div>
+        <div class="value ${expectancy > 0 ? 'pos' : 'neg'}">$${expectancy.toFixed(0)}</div>
+        <div class="sub">pro Trade</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Offene Trades</div>
+        <div class="value">${trades.filter(t => t.status === 'open').length}</div>
+        <div class="sub">aktiv</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">Insights</div>
+      ${closed.length < 10 ? 
+        `<div class="info-box">Du hast erst ${closed.length} ${closed.length === 1 ? 'Trade' : 'Trades'} abgeschlossen. Aussagekräftige Statistik beginnt ab 10–15 Trades.</div>` : ''}
+      ${winRate >= 70 && avgReturn > 0 ? 
+        `<div class="info-box">Sehr ordentliche Win Rate. Achte darauf, dass deine Verluste begrenzt bleiben — eine hohe Win Rate bedeutet, dass einzelne große Verluste die Gesamtperformance schnell zerstören können.</div>` : ''}
+      ${expectancy < 0 && closed.length >= 5 ? 
+        `<div class="warn-box">Negative Expectancy. Schau dir deine Verlust-Trades genau an — gibt es Muster? Falsche Marktphase? Zu enge Strikes? Stop-Loss nicht eingehalten?</div>` : ''}
+      ${avgReturn > 15 ? 
+        `<div class="info-box">Starke Returns. Achte darauf, deine Position-Size nicht zu früh hochzuschrauben.</div>` : ''}
+    </div>
+    
+    <div class="card" style="margin-top: 12px;">
+      <div class="card-title">Daten exportieren</div>
+      <button class="btn btn-secondary" onclick="exportData()">Als JSON exportieren</button>
+      <button class="btn btn-secondary" onclick="importData()" style="margin-top: 8px;">JSON importieren</button>
+    </div>
+  `;
+}
+
+// === UTILITIES ===
+function formatDate(d) {
+  if (!d) return '—';
+  const date = new Date(d);
+  return date.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+}
+
+function exportData() {
+  const data = JSON.stringify(trades, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'calendar_trades_' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!Array.isArray(imported)) throw new Error('Keine gültigen Trades-Daten');
+        if (confirm('Alle aktuellen Trades durch importierte ersetzen?')) {
+          trades = imported;
+          saveTrades();
+          renderTrades();
+          renderStats();
+          alert('Import erfolgreich!');
+        }
+      } catch (err) {
+        alert('Fehler beim Importieren: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// Close modal on background click
+document.getElementById('trade-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'trade-modal') closeModal();
+});
+</script>
+
+</body>
+</html>
