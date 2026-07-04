@@ -784,7 +784,8 @@
       <button class="modal-close" onclick="closeScanner()">&times;</button>
     </div>
     <div id="scanner-reader"></div>
-    <p class="info-box" style="margin-top: 12px;">Barcode der Flasche vor die Kamera halten. Benötigt eine HTTPS-Seite und Kamera-Berechtigung.</p>
+    <p class="info-box" style="margin-top: 12px;">Barcode flach, gut beleuchtet und formatfüllend in den Rahmen halten, Handy langsam näher/weiter bewegen bis er scharf ist. Bei gewölbten Etiketten Flasche leicht drehen, bis der Code möglichst flach liegt.</p>
+    <button type="button" class="btn btn-secondary" style="margin-top: 12px;" onclick="closeScanner(); switchPage('new'); document.getElementById('w-barcode').focus();">Klappt nicht? Barcode manuell eintippen</button>
   </div>
 </div>
 
@@ -955,10 +956,21 @@ function openScanner() {
     return;
   }
   document.getElementById('scanner-modal').classList.add('show');
-  scanner = new Html5Qrcode('scanner-reader');
+  scanner = new Html5Qrcode('scanner-reader', {
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.ITF
+    ],
+    verbose: false
+  });
   scanner.start(
-    { facingMode: 'environment' },
-    { fps: 10, qrbox: { width: 260, height: 140 } },
+    { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+    { fps: 10, qrbox: { width: 300, height: 150 }, aspectRatio: 1.6 },
     (decodedText) => {
       closeScanner();
       handleBarcode(decodedText);
