@@ -335,10 +335,64 @@
     margin-bottom: 10px;
     cursor: pointer;
     position: relative;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
   }
 
   .wine-item.empty { border-left: 3px solid var(--text-dim); opacity: 0.7; }
   .wine-item.active { border-left: 3px solid var(--accent-glow); }
+
+  .wine-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    background: var(--bg-elev);
+  }
+
+  .wine-thumb-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .wine-thumb-placeholder svg {
+    width: 26px;
+    height: 26px;
+    color: var(--border);
+  }
+
+  .wine-content { flex: 1; min-width: 0; }
+
+  /* Photo capture (form) */
+  .photo-row { display: flex; gap: 12px; margin-bottom: 4px; }
+
+  .photo-preview {
+    width: 84px;
+    height: 84px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-preview svg { width: 30px; height: 30px; color: var(--border); }
+
+  .photo-actions {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+  }
 
   .wine-header {
     display: flex;
@@ -656,6 +710,18 @@
     <div class="card-title"><span id="new-title-text">+ Neuer Wein</span></div>
 
     <div class="form-group">
+      <label>Foto</label>
+      <div class="photo-row">
+        <div class="photo-preview" id="photo-preview"></div>
+        <div class="photo-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('w-photo-input').click()">Foto aufnehmen</button>
+          <button type="button" class="btn btn-secondary" id="remove-photo-btn" style="display:none;" onclick="removePhoto()">Foto entfernen</button>
+        </div>
+      </div>
+      <input type="file" accept="image/*" capture="environment" id="w-photo-input" style="display:none;" onchange="handlePhotoSelected(event)">
+    </div>
+
+    <div class="form-group">
       <label>Name / Weingut</label>
       <input type="text" id="w-name" placeholder="z.B. Château Something">
     </div>
@@ -812,12 +878,73 @@ let currentWineId = null;
 let editingId = null;
 let statusFilter = 'active';
 let scanner = null;
+let currentPhotoDataUrl = '';
 
 // === INIT ===
 document.getElementById('w-purchase-date').valueAsDate = new Date();
 initStarInput();
+updatePhotoPreview();
 renderWines();
 renderStats();
+
+// === PHOTO: PLACEHOLDER ICON ===
+function bottleIconSvg() {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 2h6M10 2v5.5L5.5 13A3 3 0 0 0 8 18h8a3 3 0 0 0 2.5-5L14 7.5V2"/></svg>';
+}
+
+// === PHOTO: CAPTURE, RESIZE, PREVIEW ===
+function handlePhotoSelected(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    resizePhoto(ev.target.result, 640, 0.72, (resizedDataUrl) => {
+      currentPhotoDataUrl = resizedDataUrl;
+      updatePhotoPreview();
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function resizePhoto(dataUrl, maxSize, quality, callback) {
+  const img = new Image();
+  img.onload = () => {
+    let width = img.naturalWidth;
+    let height = img.naturalHeight;
+    if (width > height && width > maxSize) {
+      height = Math.round(height * (maxSize / width));
+      width = maxSize;
+    } else if (height >= width && height > maxSize) {
+      width = Math.round(width * (maxSize / height));
+      height = maxSize;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+    callback(canvas.toDataURL('image/jpeg', quality));
+  };
+  img.src = dataUrl;
+}
+
+function updatePhotoPreview() {
+  const preview = document.getElementById('photo-preview');
+  const removeBtn = document.getElementById('remove-photo-btn');
+  if (currentPhotoDataUrl) {
+    preview.innerHTML = '<img src="' + currentPhotoDataUrl + '" alt="">';
+    removeBtn.style.display = 'block';
+  } else {
+    preview.innerHTML = bottleIconSvg();
+    removeBtn.style.display = 'none';
+  }
+}
+
+function removePhoto() {
+  currentPhotoDataUrl = '';
+  updatePhotoPreview();
+}
 
 // === NAVIGATION ===
 function switchPage(page) {
@@ -1002,6 +1129,7 @@ function saveWine() {
 
   const data = {
     name: name,
+    photo: currentPhotoDataUrl,
     barcode: document.getElementById('w-barcode').value.trim(),
     category: document.getElementById('w-category').value,
     vintage: parseInt(document.getElementById('w-vintage').value) || null,
@@ -1039,6 +1167,8 @@ function resetForm() {
   document.getElementById('cancel-edit-btn').style.display = 'none';
 
   document.getElementById('w-name').value = '';
+  currentPhotoDataUrl = '';
+  updatePhotoPreview();
   document.getElementById('w-barcode').value = '';
   hideBarcodeStatus();
   document.getElementById('w-category').value = 'Rotwein';
@@ -1071,6 +1201,8 @@ function editWine(id) {
   document.getElementById('cancel-edit-btn').style.display = 'block';
 
   document.getElementById('w-name').value = w.name;
+  currentPhotoDataUrl = w.photo || '';
+  updatePhotoPreview();
   document.getElementById('w-barcode').value = w.barcode || '';
   hideBarcodeStatus();
   document.getElementById('w-category').value = w.category;
@@ -1090,7 +1222,11 @@ function editWine(id) {
 }
 
 function saveWines() {
-  localStorage.setItem('wine_cellar', JSON.stringify(wines));
+  try {
+    localStorage.setItem('wine_cellar', JSON.stringify(wines));
+  } catch (e) {
+    alert('Speichern fehlgeschlagen – der Browser-Speicher ist vermutlich voll (Fotos brauchen Platz). Bitte ggf. ein Foto entfernen oder unter Statistik die Daten als JSON exportieren und aufraeumen.');
+  }
 }
 
 // === RENDER WINE LIST ===
@@ -1117,21 +1253,24 @@ function renderWines() {
     const totalValue = (w.price || 0) * w.quantity;
     return `
       <div class="wine-item ${status}" onclick="openWine(${w.id})">
-        <div class="wine-header">
-          <div>
-            <div class="wine-name">${escapeHtml(w.name)}</div>
-            <div class="wine-sub">${w.grape ? escapeHtml(w.grape) + ' &middot; ' : ''}${escapeHtml(w.region || '')}</div>
+        ${w.photo ? `<img class="wine-thumb" src="${w.photo}" alt="">` : `<div class="wine-thumb wine-thumb-placeholder">${bottleIconSvg()}</div>`}
+        <div class="wine-content">
+          <div class="wine-header">
+            <div>
+              <div class="wine-name">${escapeHtml(w.name)}</div>
+              <div class="wine-sub">${w.grape ? escapeHtml(w.grape) + ' &middot; ' : ''}${escapeHtml(w.region || '')}</div>
+            </div>
+            <div class="wine-vintage">${w.vintage || '&mdash;'}</div>
           </div>
-          <div class="wine-vintage">${w.vintage || '&mdash;'}</div>
-        </div>
-        <div>
-          <span class="badge category">${w.category}</span>
-          ${drinkWindowBadge(w)}
-          ${status === 'empty' ? '<span class="badge empty">Leer</span>' : ''}
-        </div>
-        <div class="wine-meta">
-          <div class="qty">${w.quantity}&times; Flasche${w.quantity === 1 ? '' : 'n'} &middot; ${totalValue.toFixed(2)}&euro;</div>
-          ${starsDisplay(w.rating)}
+          <div>
+            <span class="badge category">${w.category}</span>
+            ${drinkWindowBadge(w)}
+            ${status === 'empty' ? '<span class="badge empty">Leer</span>' : ''}
+          </div>
+          <div class="wine-meta">
+            <div class="qty">${w.quantity}&times; Flasche${w.quantity === 1 ? '' : 'n'} &middot; ${totalValue.toFixed(2)}&euro;</div>
+            ${starsDisplay(w.rating)}
+          </div>
         </div>
       </div>
     `;
@@ -1156,6 +1295,7 @@ function openWine(id) {
     `).join('') : '<div class="info-box">Noch keine Flasche geoeffnet.</div>';
 
   document.getElementById('modal-body').innerHTML = `
+    ${w.photo ? `<img src="${w.photo}" alt="" style="width:100%; max-height:240px; object-fit:cover; border-radius:14px; margin-bottom:12px; border:1px solid var(--border);">` : ''}
     <div class="card" style="margin-bottom: 12px;">
       <div class="card-title">Details ${starsDisplay(w.rating)}</div>
       <div class="key-value"><span class="key">Kategorie</span><span class="val">${w.category}</span></div>
