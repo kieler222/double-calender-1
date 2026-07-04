@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -582,6 +583,41 @@
   }
 
   .install-hint strong { color: var(--accent-glow); font-weight: 600; }
+
+  /* Barcode */
+  .barcode-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .barcode-row input { flex: 1; }
+
+  .barcode-row .btn {
+    width: auto;
+    flex-shrink: 0;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+
+  #scanner-reader {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+  }
+
+  #scanner-reader video, #scanner-reader img { border-radius: 12px; }
+
+  #scanner-reader__dashboard_section_csr button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
 </style>
 </head>
 <body>
@@ -622,6 +658,16 @@
     <div class="form-group">
       <label>Name / Weingut</label>
       <input type="text" id="w-name" placeholder="z.B. Château Something">
+    </div>
+
+    <div class="form-group">
+      <label>Barcode (EAN)</label>
+      <div class="barcode-row">
+        <input type="text" inputmode="numeric" id="w-barcode" placeholder="z.B. 4006381333931">
+        <button type="button" class="btn btn-secondary" onclick="lookupBarcodeManual()">Nachschlagen</button>
+      </div>
+      <button type="button" class="btn btn-secondary" style="margin-top: 8px;" onclick="openScanner()">Barcode mit Kamera scannen</button>
+      <div id="barcode-status" style="display:none; margin-top: 8px;"></div>
     </div>
 
     <div class="form-row">
@@ -729,6 +775,19 @@
   </div>
 </div>
 
+<!-- BARCODE SCANNER MODAL -->
+<div class="modal" id="scanner-modal">
+  <div class="modal-content">
+    <div class="modal-handle"></div>
+    <div class="modal-title">
+      <span>Barcode scannen</span>
+      <button class="modal-close" onclick="closeScanner()">&times;</button>
+    </div>
+    <div id="scanner-reader"></div>
+    <p class="info-box" style="margin-top: 12px;">Barcode der Flasche vor die Kamera halten. Benötigt eine HTTPS-Seite und Kamera-Berechtigung.</p>
+  </div>
+</div>
+
 <!-- NAVIGATION -->
 <div class="nav">
   <button class="nav-item active" data-page="keller" onclick="switchPage('keller')">
@@ -751,6 +810,7 @@ let wines = JSON.parse(localStorage.getItem('wine_cellar') || '[]');
 let currentWineId = null;
 let editingId = null;
 let statusFilter = 'active';
+let scanner = null;
 
 // === INIT ===
 document.getElementById('w-purchase-date').valueAsDate = new Date();
@@ -813,6 +873,111 @@ function drinkWindowBadge(w) {
   return '<span class="badge ready">Trinkreif</span>';
 }
 
+// === BARCODE: STATUS DISPLAY ===
+function setBarcodeStatus(message, kind) {
+  const el = document.getElementById('barcode-status');
+  el.className = kind === 'warn' ? 'warn-box' : 'info-box';
+  el.textContent = message;
+  el.style.display = 'block';
+}
+
+function hideBarcodeStatus() {
+  const el = document.getElementById('barcode-status');
+  el.style.display = 'none';
+  el.textContent = '';
+}
+
+// === BARCODE: CATEGORY GUESS ===
+function guessCategory(text) {
+  const t = (text || '').toLowerCase();
+  if (/(sekt|champagn|prosecco|cava|cr[ée]mant|sparkling|mousseux|spumante)/.test(t)) return 'Schaumwein';
+  if (/(rosé|rose wine|ros[ée])/.test(t)) return 'Rosé';
+  if (/(rotwein|red wine|rouge|vino rosso)/.test(t)) return 'Rotwein';
+  if (/(weißwein|weisswein|white wine|blanc|vino bianco)/.test(t)) return 'Weißwein';
+  if (/(portwein|port wine|sherry|dessert wine|süßwein|suesswein|eiswein|late harvest)/.test(t)) return 'Süßwein';
+  return null;
+}
+
+// === BARCODE: ONLINE LOOKUP (Open Food Facts) ===
+async function fetchProductInfo(code) {
+  setBarcodeStatus('Suche Produktdaten online...', 'info');
+  try {
+    const res = await fetch('https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(code) + '.json?fields=product_name,product_name_de,brands,categories_tags,origins');
+    const data = await res.json();
+    if (data.status === 1 && data.product) {
+      const p = data.product;
+      const name = p.product_name_de || p.product_name || p.brands || '';
+      if (name) document.getElementById('w-name').value = name;
+      if (p.origins) document.getElementById('w-region').value = p.origins.split(',')[0].trim();
+      const guessed = guessCategory((p.categories_tags || []).join(' ') + ' ' + name);
+      if (guessed) document.getElementById('w-category').value = guessed;
+      setBarcodeStatus('Daten von Open Food Facts übernommen. Bitte prüfen und Jahrgang, Preis, Bewertung ergänzen.', 'info');
+    } else {
+      setBarcodeStatus('Keine Online-Daten zu diesem Barcode gefunden. Bitte manuell ausfüllen.', 'warn');
+    }
+  } catch (e) {
+    setBarcodeStatus('Online-Suche fehlgeschlagen (keine Verbindung?). Bitte manuell ausfüllen.', 'warn');
+  }
+}
+
+// === BARCODE: SHARED HANDLER (duplicate check + lookup) ===
+function handleBarcode(code) {
+  code = (code || '').trim();
+  if (!code) return;
+  document.getElementById('w-barcode').value = code;
+
+  const existing = wines.find(w => w.barcode === code && w.id !== editingId);
+  if (existing) {
+    const addBottle = confirm('Bereits im Keller: "' + existing.name + '" (' + existing.quantity + '×). Eine Flasche zum Bestand hinzufügen?');
+    if (addBottle) {
+      existing.quantity += 1;
+      saveWines();
+      switchPage('keller');
+      openWine(existing.id);
+      return;
+    }
+  }
+
+  if (document.getElementById('page-new').classList.contains('active') === false) {
+    switchPage('new');
+  }
+  fetchProductInfo(code);
+}
+
+function lookupBarcodeManual() {
+  handleBarcode(document.getElementById('w-barcode').value);
+}
+
+// === BARCODE: CAMERA SCANNER ===
+function openScanner() {
+  if (typeof Html5Qrcode === 'undefined') {
+    alert('Scanner-Bibliothek konnte nicht geladen werden (keine Internetverbindung?). Bitte Barcode manuell eingeben.');
+    return;
+  }
+  document.getElementById('scanner-modal').classList.add('show');
+  scanner = new Html5Qrcode('scanner-reader');
+  scanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 260, height: 140 } },
+    (decodedText) => {
+      closeScanner();
+      handleBarcode(decodedText);
+    },
+    () => {}
+  ).catch(() => {
+    closeScanner();
+    alert('Kamera-Zugriff nicht möglich. Bitte Berechtigung erteilen oder Barcode manuell eingeben.');
+  });
+}
+
+function closeScanner() {
+  document.getElementById('scanner-modal').classList.remove('show');
+  if (scanner) {
+    scanner.stop().then(() => scanner.clear()).catch(() => {});
+    scanner = null;
+  }
+}
+
 // === SAVE / EDIT WINE ===
 function saveWine() {
   const name = document.getElementById('w-name').value.trim();
@@ -825,6 +990,7 @@ function saveWine() {
 
   const data = {
     name: name,
+    barcode: document.getElementById('w-barcode').value.trim(),
     category: document.getElementById('w-category').value,
     vintage: parseInt(document.getElementById('w-vintage').value) || null,
     grape: document.getElementById('w-grape').value.trim(),
@@ -861,6 +1027,8 @@ function resetForm() {
   document.getElementById('cancel-edit-btn').style.display = 'none';
 
   document.getElementById('w-name').value = '';
+  document.getElementById('w-barcode').value = '';
+  hideBarcodeStatus();
   document.getElementById('w-category').value = 'Rotwein';
   document.getElementById('w-vintage').value = '';
   document.getElementById('w-grape').value = '';
@@ -891,6 +1059,8 @@ function editWine(id) {
   document.getElementById('cancel-edit-btn').style.display = 'block';
 
   document.getElementById('w-name').value = w.name;
+  document.getElementById('w-barcode').value = w.barcode || '';
+  hideBarcodeStatus();
   document.getElementById('w-category').value = w.category;
   document.getElementById('w-vintage').value = w.vintage || '';
   document.getElementById('w-grape').value = w.grape || '';
@@ -977,6 +1147,7 @@ function openWine(id) {
     <div class="card" style="margin-bottom: 12px;">
       <div class="card-title">Details ${starsDisplay(w.rating)}</div>
       <div class="key-value"><span class="key">Kategorie</span><span class="val">${w.category}</span></div>
+      ${w.barcode ? `<div class="key-value"><span class="key">Barcode</span><span class="val">${escapeHtml(w.barcode)}</span></div>` : ''}
       <div class="key-value"><span class="key">Jahrgang</span><span class="val">${w.vintage || '&mdash;'}</span></div>
       <div class="key-value"><span class="key">Rebsorte</span><span class="val">${escapeHtml(w.grape) || '&mdash;'}</span></div>
       <div class="key-value"><span class="key">Region</span><span class="val">${escapeHtml(w.region) || '&mdash;'}</span></div>
@@ -1189,6 +1360,10 @@ function importData() {
 // Close modal on background click
 document.getElementById('wine-modal').addEventListener('click', (e) => {
   if (e.target.id === 'wine-modal') closeModal();
+});
+
+document.getElementById('scanner-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'scanner-modal') closeScanner();
 });
 </script>
 
