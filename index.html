@@ -261,6 +261,12 @@
     height: 20px;
     flex-shrink: 0;
     accent-color: var(--accent);
+    -webkit-appearance: checkbox;
+    appearance: auto;
+    background: none;
+    border: none;
+    padding: 0;
+    border-radius: 0;
   }
 
   /* Star rating input */
@@ -1296,7 +1302,6 @@ function renderWines() {
 
   list.innerHTML = filtered.map(w => {
     const status = w.quantity > 0 ? 'active' : 'empty';
-    const totalValue = (w.price || 0) * w.quantity;
     return `
       <div class="wine-item ${status}" onclick="openWine(${w.id})">
         ${w.photo ? `<img class="wine-thumb" src="${w.photo}" alt="">` : `<div class="wine-thumb wine-thumb-placeholder">${bottleIconSvg()}</div>`}
@@ -1306,7 +1311,7 @@ function renderWines() {
               <span class="wine-name">${escapeHtml(w.name)}</span>
               ${w.vintage ? `<span class="wine-vintage">${w.vintage}</span>` : ''}
             </div>
-            <div class="wine-qty-price">${w.quantity}&times; &middot; ${totalValue.toFixed(2)}&euro;</div>
+            <div class="wine-qty-price">${w.quantity}&times; &middot; ${(w.price || 0).toFixed(2)}&euro;</div>
           </div>
           <div class="wine-row">
             <div class="wine-badges">
