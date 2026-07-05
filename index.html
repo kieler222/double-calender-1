@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Weinkeller">
+<meta name="apple-mobile-web-app-title" content="Philipps Weinsammlung">
 <meta name="theme-color" content="#f6f1e7">
-<title>Weinkeller Inventar</title>
+<title>Philipp&rsquo;s Weinsammlung</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -44,7 +44,7 @@
   html, body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'Karla', -apple-system, sans-serif;
+    font-family: 'IBM Plex Mono', monospace;
     font-size: 16px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -73,7 +73,7 @@
   }
 
   .header h1 {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', monospace;
     font-weight: 600;
     font-size: 26px;
     letter-spacing: -0.01em;
@@ -84,16 +84,6 @@
     color: var(--accent);
     font-style: italic;
     font-weight: 500;
-  }
-
-  .header .sub {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-top: 4px;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    font-family: 'IBM Plex Mono', monospace;
-    font-weight: 400;
   }
 
   /* Bottom Navigation */
@@ -149,7 +139,7 @@
   }
 
   .card-title {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', monospace;
     font-size: 19px;
     font-weight: 600;
     color: var(--text);
@@ -237,7 +227,7 @@
 
   .form-group textarea {
     min-height: 80px;
-    font-family: 'Karla', -apple-system, sans-serif;
+    font-family: 'IBM Plex Mono', monospace;
     line-height: 1.5;
     resize: vertical;
   }
@@ -261,7 +251,7 @@
     cursor: pointer;
     text-transform: none !important;
     letter-spacing: normal !important;
-    font-family: 'Cormorant Garamond', Georgia, serif !important;
+    font-family: 'IBM Plex Mono', monospace !important;
     font-size: 17px !important;
     font-weight: 600 !important;
     color: var(--text) !important;
@@ -309,7 +299,7 @@
     border-radius: 12px;
     font-size: 16px;
     font-weight: 600;
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', monospace;
     cursor: pointer;
     transition: opacity 0.2s, transform 0.05s;
   }
@@ -471,7 +461,7 @@
   }
 
   .wine-name {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', monospace;
     font-size: 16px;
     font-weight: 600;
     color: var(--text);
@@ -618,7 +608,7 @@
   }
 
   .modal-title {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'IBM Plex Mono', monospace;
     font-size: 22px;
     font-weight: 600;
     margin-bottom: 16px;
@@ -662,7 +652,7 @@
   }
 
   .empty-state .emoji { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
-  .empty-state p { font-family: 'Cormorant Garamond', Georgia, serif; font-style: italic; font-size: 17px; }
+  .empty-state p { font-family: 'IBM Plex Mono', monospace; font-style: italic; font-size: 17px; }
 
   .log-entry {
     padding: 10px 0;
@@ -717,8 +707,7 @@
 <body>
 
 <div class="header">
-  <h1>Wein<span class="accent">keller</span></h1>
-  <div class="sub">Meine Weinsammlung</div>
+  <h1>Philipp&rsquo;s <span class="accent">Weinsammlung</span></h1>
 </div>
 
 <!-- KELLER PAGE -->
@@ -818,15 +807,9 @@
       </div>
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label>Kaufdatum</label>
-        <input type="date" id="w-purchase-date">
-      </div>
-      <div class="form-group">
-        <label>Lagerort</label>
-        <input type="text" id="w-location" placeholder="z.B. Regal 3">
-      </div>
+    <div class="form-group">
+      <label>Kaufdatum</label>
+      <input type="date" id="w-purchase-date">
     </div>
 
     <div class="form-group">
@@ -1185,7 +1168,6 @@ function saveWine() {
     quantity: quantity,
     price: parseFloat(document.getElementById('w-price').value) || 0,
     purchaseDate: document.getElementById('w-purchase-date').value,
-    location: document.getElementById('w-location').value.trim(),
     gift: document.getElementById('w-gift').checked,
     drinkFrom: parseInt(document.getElementById('w-drink-from').value) || null,
     drinkTo: parseInt(document.getElementById('w-drink-to').value) || null,
@@ -1226,7 +1208,6 @@ function resetForm() {
   document.getElementById('w-quantity').value = '1';
   document.getElementById('w-price').value = '';
   document.getElementById('w-purchase-date').valueAsDate = new Date();
-  document.getElementById('w-location').value = '';
   document.getElementById('w-gift').checked = false;
   document.getElementById('w-drink-from').value = '';
   document.getElementById('w-drink-to').value = '';
@@ -1261,7 +1242,6 @@ function editWine(id) {
   document.getElementById('w-quantity').value = w.quantity;
   document.getElementById('w-price').value = w.price || '';
   document.getElementById('w-purchase-date').value = w.purchaseDate || '';
-  document.getElementById('w-location').value = w.location || '';
   document.getElementById('w-gift').checked = !!w.gift;
   document.getElementById('w-drink-from').value = w.drinkFrom || '';
   document.getElementById('w-drink-to').value = w.drinkTo || '';
@@ -1352,7 +1332,6 @@ function openWine(id) {
       <div class="key-value"><span class="key">Jahrgang</span><span class="val">${w.vintage || '&mdash;'}</span></div>
       <div class="key-value"><span class="key">Rebsorte</span><span class="val">${escapeHtml(w.grape) || '&mdash;'}</span></div>
       <div class="key-value"><span class="key">Region</span><span class="val">${escapeHtml(w.region) || '&mdash;'}</span></div>
-      <div class="key-value"><span class="key">Lagerort</span><span class="val">${escapeHtml(w.location) || '&mdash;'}</span></div>
       <div class="key-value"><span class="key">Kaufdatum</span><span class="val">${formatDate(w.purchaseDate)}</span></div>
       <div class="key-value"><span class="key">Preis / Flasche</span><span class="val">${(w.price || 0).toFixed(2)}&euro;</span></div>
       <div class="key-value"><span class="key">Bestand</span><span class="val">${w.quantity}&times;</span></div>

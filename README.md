@@ -6,4 +6,4 @@ Flaschen lassen sich zusätzlich per Barcode (EAN) erfassen: Kamera-Scan (über 
 
 Zu jedem Wein lässt sich außerdem ein Foto aufnehmen (wird vor dem Speichern automatisch verkleinert, um den begrenzten Browser-Speicherplatz zu schonen) und erscheint als Miniaturbild links in der Kellerliste sowie größer in der Detailansicht.
 
-Design: helles, warmes Farbschema (Creme-Hintergrund, Bordeaux-Akzent) mit Cormorant Garamond für Überschriften/Namen, Karla als Fließtext-Schrift und IBM Plex Mono für Zahlen/Daten.
+Design: helles, warmes Farbschema (Creme-Hintergrund, Bordeaux-Akzent), durchgängig in IBM Plex Mono gesetzt.
