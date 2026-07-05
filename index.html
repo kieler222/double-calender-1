@@ -1133,6 +1133,7 @@ function lookupBarcodeManual() {
 
 // === BARCODE: CAMERA SCANNER ===
 function openScanner() {
+  alert('DIAGNOSE: Button-Klick kam an.');
   if (typeof Html5Qrcode === 'undefined') {
     alert('Scanner-Bibliothek konnte nicht geladen werden (keine Internetverbindung oder durch einen Inhaltsblocker verhindert?). Bitte Barcode manuell eingeben.');
     return;
