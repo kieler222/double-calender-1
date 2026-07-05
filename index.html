@@ -360,20 +360,16 @@
     font-weight: 600;
   }
 
-  .filter-select {
-    margin-bottom: 16px;
-  }
-
   /* Wine list */
   .wine-item {
     background: var(--bg-card);
     border-radius: 10px;
-    padding: 8px 10px;
-    margin-bottom: 6px;
+    padding: 6px 8px;
+    margin-bottom: 5px;
     cursor: pointer;
     position: relative;
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   }
@@ -381,9 +377,9 @@
   .wine-item.empty { opacity: 0.55; }
 
   .wine-thumb {
-    width: 44px;
-    height: 44px;
-    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
     object-fit: cover;
     flex-shrink: 0;
     background: var(--bg);
@@ -396,8 +392,8 @@
   }
 
   .wine-thumb-placeholder svg {
-    width: 18px;
-    height: 18px;
+    width: 15px;
+    height: 15px;
     color: var(--text-dim);
   }
 
@@ -406,7 +402,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
   }
 
   .wine-row {
@@ -425,7 +421,7 @@
   }
 
   .wine-qty-price {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text);
     flex-shrink: 0;
     white-space: nowrap;
@@ -434,7 +430,7 @@
   }
 
   .wine-sub {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-dim);
     white-space: nowrap;
     overflow: hidden;
@@ -478,7 +474,7 @@
   }
 
   .wine-name {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text);
     white-space: nowrap;
@@ -487,7 +483,7 @@
   }
 
   .wine-vintage {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-dim);
     flex-shrink: 0;
     font-variant-numeric: tabular-nums;
@@ -725,18 +721,6 @@
     <button class="pill active" data-status="active" onclick="setStatusFilter('active')">Im Keller</button>
     <button class="pill" data-status="all" onclick="setStatusFilter('all')">Alle</button>
     <button class="pill" data-status="empty" onclick="setStatusFilter('empty')">Leer</button>
-  </div>
-
-  <div class="form-group filter-select">
-    <select id="category-filter" onchange="renderWines()">
-      <option value="all">Alle Kategorien</option>
-      <option value="Rotwein">Rotwein</option>
-      <option value="Weißwein">Weißwein</option>
-      <option value="Rosé">Rosé</option>
-      <option value="Schaumwein">Schaumwein / Sekt / Champagner</option>
-      <option value="Süßwein">Süßwein / Portwein</option>
-      <option value="Sonstiges">Sonstiges</option>
-    </select>
   </div>
 
   <div id="wines-list"></div>
@@ -1334,12 +1318,9 @@ function saveWines() {
 // === RENDER WINE LIST ===
 function renderWines() {
   const list = document.getElementById('wines-list');
-  const categoryFilter = document.getElementById('category-filter').value;
-
   let filtered = wines.filter(w => {
     if (statusFilter === 'active' && w.quantity <= 0) return false;
     if (statusFilter === 'empty' && w.quantity > 0) return false;
-    if (categoryFilter !== 'all' && w.category !== categoryFilter) return false;
     return true;
   });
 
