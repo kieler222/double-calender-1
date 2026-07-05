@@ -760,8 +760,13 @@
     </div>
 
     <div class="form-group">
-      <label>Name / Weingut</label>
-      <input type="text" id="w-name" placeholder="z.B. Château Something">
+      <label>Weingut</label>
+      <input type="text" id="w-winery" placeholder="z.B. Château Something">
+    </div>
+
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="w-name" placeholder="z.B. Grand Reserve">
     </div>
 
     <div class="form-group">
@@ -1099,6 +1104,7 @@ async function fetchProductInfo(code) {
       const p = data.product;
       const name = p.product_name_de || p.product_name || p.brands || '';
       if (name) document.getElementById('w-name').value = name;
+      if (p.brands) document.getElementById('w-winery').value = p.brands.split(',')[0].trim();
       if (p.origins) document.getElementById('w-region').value = p.origins.split(',')[0].trim();
       const guessed = guessCategory((p.categories_tags || []).join(' ') + ' ' + name);
       if (guessed) document.getElementById('w-category').value = guessed;
@@ -1119,7 +1125,8 @@ function handleBarcode(code) {
 
   const existing = wines.find(w => w.barcode === code && w.id !== editingId);
   if (existing) {
-    const addBottle = confirm('Bereits im Keller: "' + existing.name + '" (' + existing.quantity + '×). Eine Flasche zum Bestand hinzufügen?');
+    const existingLabel = (existing.winery ? existing.winery + ' ' : '') + existing.name;
+    const addBottle = confirm('Bereits im Keller: "' + existingLabel + '" (' + existing.quantity + '×). Eine Flasche zum Bestand hinzufügen?');
     if (addBottle) {
       existing.quantity += 1;
       saveWines();
@@ -1221,6 +1228,7 @@ function saveWine() {
 
   const data = {
     name: name,
+    winery: document.getElementById('w-winery').value.trim(),
     photo: currentPhotoDataUrl,
     barcode: document.getElementById('w-barcode').value.trim(),
     category: document.getElementById('w-category').value,
@@ -1259,6 +1267,7 @@ function resetForm() {
   document.getElementById('cancel-edit-btn').style.display = 'none';
 
   document.getElementById('w-name').value = '';
+  document.getElementById('w-winery').value = '';
   currentPhotoDataUrl = '';
   updatePhotoPreview();
   document.getElementById('w-barcode').value = '';
@@ -1293,6 +1302,7 @@ function editWine(id) {
   document.getElementById('cancel-edit-btn').style.display = 'block';
 
   document.getElementById('w-name').value = w.name;
+  document.getElementById('w-winery').value = w.winery || '';
   currentPhotoDataUrl = w.photo || '';
   updatePhotoPreview();
   document.getElementById('w-barcode').value = w.barcode || '';
@@ -1349,19 +1359,13 @@ function renderWines() {
         <div class="wine-content">
           <div class="wine-row">
             <div class="wine-title">
-              <span class="wine-name">${escapeHtml(w.name)}</span>
+              <span class="wine-name">${w.winery ? escapeHtml(w.winery) + ' ' : ''}${escapeHtml(w.name)}</span>
               ${w.vintage ? `<span class="wine-vintage">${w.vintage}</span>` : ''}
             </div>
             <div class="wine-qty-price">${w.quantity}&times; &middot; ${(w.price || 0).toFixed(2)}&euro;</div>
           </div>
           ${(w.grape || w.region) ? `<div class="wine-sub">${w.grape ? escapeHtml(w.grape) : ''}${w.grape && w.region ? ' &middot; ' : ''}${w.region ? escapeHtml(w.region) : ''}</div>` : ''}
-          <div class="wine-row">
-            <div class="wine-badges">
-              <span class="badge category" style="background:${hexToRgba(catColor, 0.16)}; color:${catColor};">${w.category}</span>
-              ${w.gift ? '<span class="badge gift">Geschenk</span>' : ''}
-              ${drinkWindowBadge(w)}
-              ${status === 'empty' ? '<span class="badge empty">Leer</span>' : ''}
-            </div>
+          <div class="wine-row" style="justify-content: flex-end;">
             ${starsDisplay(w.rating)}
           </div>
         </div>
@@ -1376,7 +1380,7 @@ function openWine(id) {
   if (!w) return;
   currentWineId = id;
 
-  document.getElementById('modal-title-text').textContent = w.name;
+  document.getElementById('modal-title-text').textContent = (w.winery ? w.winery + ' ' : '') + w.name;
 
   const totalValue = (w.price || 0) * w.quantity;
   const logHtml = (w.consumedLog && w.consumedLog.length) ?
@@ -1391,6 +1395,7 @@ function openWine(id) {
     ${w.photo ? `<img src="${w.photo}" alt="" style="width:100%; max-height:240px; object-fit:cover; border-radius:14px; margin-bottom:12px; border:1px solid var(--border);">` : ''}
     <div class="card" style="margin-bottom: 12px;">
       <div class="card-title">Details ${starsDisplay(w.rating)}</div>
+      ${w.winery ? `<div class="key-value"><span class="key">Weingut</span><span class="val">${escapeHtml(w.winery)}</span></div>` : ''}
       <div class="key-value"><span class="key">Kategorie</span><span class="val">${w.category}</span></div>
       ${w.barcode ? `<div class="key-value"><span class="key">Barcode</span><span class="val">${escapeHtml(w.barcode)}</span></div>` : ''}
       <div class="key-value"><span class="key">Jahrgang</span><span class="val">${w.vintage || '&mdash;'}</span></div>
@@ -1536,7 +1541,7 @@ function renderStats() {
         <div class="card-title">Top bewertet</div>
         ${topRated.map(w => `
           <div class="key-value">
-            <span class="key">${escapeHtml(w.name)} ${w.vintage ? '(' + w.vintage + ')' : ''}</span>
+            <span class="key">${w.winery ? escapeHtml(w.winery) + ' ' : ''}${escapeHtml(w.name)} ${w.vintage ? '(' + w.vintage + ')' : ''}</span>
             <span class="val">${starsDisplay(w.rating)}</span>
           </div>
         `).join('')}
