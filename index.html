@@ -1133,17 +1133,20 @@ function lookupBarcodeManual() {
 
 // === BARCODE: CAMERA SCANNER ===
 function openScanner() {
-  alert('DIAGNOSE: Button-Klick kam an.');
+  alert('DIAGNOSE 1: Button-Klick kam an.');
   if (typeof Html5Qrcode === 'undefined') {
-    alert('Scanner-Bibliothek konnte nicht geladen werden (keine Internetverbindung oder durch einen Inhaltsblocker verhindert?). Bitte Barcode manuell eingeben.');
+    alert('DIAGNOSE 2a: Html5Qrcode ist undefined (Bibliothek nicht geladen).');
     return;
   }
+  alert('DIAGNOSE 2b: Html5Qrcode ist vorhanden.');
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert('Kamerazugriff wird hier nicht unterstützt (evtl. eingebetteter Browser?). Bitte Barcode manuell eingeben.');
+    alert('DIAGNOSE 3a: Kamera-API (getUserMedia) nicht vorhanden.');
     return;
   }
+  alert('DIAGNOSE 3b: Kamera-API vorhanden.');
 
   document.getElementById('scanner-modal').classList.add('show');
+  alert('DIAGNOSE 4: Scanner-Fenster sollte jetzt sichtbar sein.');
 
   try {
     scanner = new Html5Qrcode('scanner-reader', {
@@ -1158,6 +1161,7 @@ function openScanner() {
       ],
       verbose: false
     });
+    alert('DIAGNOSE 5: Html5Qrcode-Objekt erstellt, starte jetzt Kamera...');
 
     scanner.start(
       { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
@@ -1167,13 +1171,15 @@ function openScanner() {
         handleBarcode(decodedText);
       },
       () => {}
-    ).catch((err) => {
+    ).then(() => {
+      alert('DIAGNOSE 6: Kamera erfolgreich gestartet.');
+    }).catch((err) => {
       closeScanner();
-      alert('Kamera-Zugriff nicht möglich (' + (err && err.message ? err.message : err) + '). Bitte Berechtigung erteilen oder Barcode manuell eingeben.');
+      alert('DIAGNOSE 7: Kamera-Zugriff nicht möglich (' + (err && err.message ? err.message : err) + ').');
     });
   } catch (err) {
     closeScanner();
-    alert('Scanner konnte nicht gestartet werden (' + (err && err.message ? err.message : err) + '). Bitte Barcode manuell eingeben.');
+    alert('DIAGNOSE 8: Scanner-Konstruktion fehlgeschlagen (' + (err && err.message ? err.message : err) + ').');
   }
 }
 
