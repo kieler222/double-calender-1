@@ -6,4 +6,4 @@ Flaschen lassen sich zusätzlich per Barcode (EAN) erfassen: Kamera-Scan (über 
 
 Zu jedem Wein lässt sich außerdem ein Foto aufnehmen (wird vor dem Speichern automatisch verkleinert, um den begrenzten Browser-Speicherplatz zu schonen) und erscheint als Miniaturbild links in der Kellerliste sowie größer in der Detailansicht.
 
-Design: helles, warmes Farbschema (Creme-Hintergrund, Bordeaux-Akzent), durchgängig in IBM Plex Mono gesetzt.
+Design: natives iOS-Look-and-Feel – Systemschrift (San Francisco via `-apple-system`), iOS-Systemfarben (Blau als Akzent, Grün/Rot/Orange/Gelb/Teal als Statusfarben), gruppierte Listen ohne Rahmen, ein Segmented Control für die Filter und ein echter iOS-Schalter für das Geschenk-Flag.
