@@ -433,6 +433,14 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .wine-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .wine-badges {
     display: flex;
     flex-wrap: wrap;
@@ -1133,20 +1141,24 @@ function lookupBarcodeManual() {
 
 // === BARCODE: CAMERA SCANNER ===
 function openScanner() {
-  alert('DIAGNOSE 1: Button-Klick kam an.');
   if (typeof Html5Qrcode === 'undefined') {
-    alert('DIAGNOSE 2a: Html5Qrcode ist undefined (Bibliothek nicht geladen).');
+    alert('Scanner-Bibliothek konnte nicht geladen werden (keine Internetverbindung oder durch einen Inhaltsblocker verhindert?). Bitte Barcode manuell eingeben.');
     return;
   }
-  alert('DIAGNOSE 2b: Html5Qrcode ist vorhanden.');
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert('DIAGNOSE 3a: Kamera-API (getUserMedia) nicht vorhanden.');
+    alert('Kamerazugriff wird hier nicht unterstützt (evtl. eingebetteter Browser?). Bitte Barcode manuell eingeben.');
     return;
   }
-  alert('DIAGNOSE 3b: Kamera-API vorhanden.');
 
   document.getElementById('scanner-modal').classList.add('show');
-  alert('DIAGNOSE 4: Scanner-Fenster sollte jetzt sichtbar sein.');
+
+  let settled = false;
+  const stuckTimeout = setTimeout(() => {
+    if (settled) return;
+    settled = true;
+    closeScanner();
+    alert('Die Kamera reagiert nicht. Das passiert oft, wenn die Seite in einer eingebetteten App (z.B. GitHub-App) statt direkt in Safari geöffnet wurde. Bitte die Seite direkt in Safari öffnen oder den Barcode manuell eingeben.');
+  }, 8000);
 
   try {
     scanner = new Html5Qrcode('scanner-reader', {
@@ -1161,25 +1173,31 @@ function openScanner() {
       ],
       verbose: false
     });
-    alert('DIAGNOSE 5: Html5Qrcode-Objekt erstellt, starte jetzt Kamera...');
 
     scanner.start(
       { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
       { fps: 10, qrbox: { width: 300, height: 150 }, aspectRatio: 1.6 },
       (decodedText) => {
+        if (!settled) { settled = true; clearTimeout(stuckTimeout); }
         closeScanner();
         handleBarcode(decodedText);
       },
       () => {}
     ).then(() => {
-      alert('DIAGNOSE 6: Kamera erfolgreich gestartet.');
+      settled = true;
+      clearTimeout(stuckTimeout);
     }).catch((err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(stuckTimeout);
       closeScanner();
-      alert('DIAGNOSE 7: Kamera-Zugriff nicht möglich (' + (err && err.message ? err.message : err) + ').');
+      alert('Kamera-Zugriff nicht möglich. Bitte Berechtigung erteilen oder Barcode manuell eingeben.');
     });
   } catch (err) {
+    settled = true;
+    clearTimeout(stuckTimeout);
     closeScanner();
-    alert('DIAGNOSE 8: Scanner-Konstruktion fehlgeschlagen (' + (err && err.message ? err.message : err) + ').');
+    alert('Scanner konnte nicht gestartet werden. Bitte Barcode manuell eingeben.');
   }
 }
 
@@ -1336,6 +1354,7 @@ function renderWines() {
             </div>
             <div class="wine-qty-price">${w.quantity}&times; &middot; ${(w.price || 0).toFixed(2)}&euro;</div>
           </div>
+          ${(w.grape || w.region) ? `<div class="wine-sub">${w.grape ? escapeHtml(w.grape) : ''}${w.grape && w.region ? ' &middot; ' : ''}${w.region ? escapeHtml(w.region) : ''}</div>` : ''}
           <div class="wine-row">
             <div class="wine-badges">
               <span class="badge category" style="background:${hexToRgba(catColor, 0.16)}; color:${catColor};">${w.category}</span>
