@@ -177,16 +177,19 @@
 
   .purchase-table { margin-bottom: 4px; }
 
+  .purchase-entry {
+    padding: 8px 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .purchase-entry:last-of-type { border-bottom: none; }
+
   .purchase-row {
     display: flex;
     align-items: baseline;
     gap: 8px;
-    padding: 8px 0;
-    border-bottom: 0.5px solid var(--border);
     font-size: 14px;
   }
-
-  .purchase-row:last-child { border-bottom: none; }
 
   .purchase-date { flex: 1.3; color: var(--text); }
   .purchase-price, .purchase-qty {
@@ -197,8 +200,17 @@
   .purchase-price { flex: 1; }
   .purchase-qty { flex: 0.6; }
 
+  .purchase-note {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    padding-left: 11px;
+  }
+
   .purchase-header {
     padding-bottom: 6px;
+    margin-bottom: 6px;
+    border-bottom: 0.5px solid var(--border);
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.02em;
@@ -208,7 +220,6 @@
 
   .purchase-total-row {
     font-weight: 700;
-    border-bottom: none;
     border-top: 1px solid var(--border);
     margin-top: 2px;
     padding-top: 10px;
@@ -878,19 +889,6 @@
   .empty-state .emoji { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
   .empty-state p { font-size: 15px; }
 
-  .log-entry {
-    padding: 10px 0;
-    border-bottom: 0.5px solid var(--border);
-    font-size: 13px;
-  }
-
-  .log-entry:last-child { border-bottom: none; }
-
-  .log-entry .log-date {
-    color: var(--text-dim);
-    font-size: 11px;
-  }
-
   /* Barcode */
   .barcode-row {
     display: flex;
@@ -1546,8 +1544,7 @@ function saveWine() {
   } else {
     wines.push(Object.assign({
       id: Date.now(),
-      consumedLog: [],
-      purchaseLog: [{ date: data.purchaseDate, price: data.price, quantity: data.quantity, gift: data.gift }]
+      history: [{ date: data.purchaseDate, type: 'buy', quantity: data.quantity, price: data.price, gift: data.gift, note: '' }]
     }, data));
   }
 
@@ -1689,35 +1686,62 @@ function openWine(id) {
   document.getElementById('modal-title-name').textContent = w.name;
   document.getElementById('modal-title-stars').innerHTML = starsDisplay(w.rating);
 
-  if (!w.purchaseLog || !w.purchaseLog.length) {
-    w.purchaseLog = [{ date: w.purchaseDate, price: w.price || 0, quantity: w.quantity || 0, gift: !!w.gift }];
-    saveWines();
-  }
+  migrateHistory(w);
 
-  const logHtml = (w.consumedLog && w.consumedLog.length) ?
-    [...w.consumedLog].reverse().map(l => `
-      <div class="log-entry">
-        <div class="log-date">${formatDate(l.date)}</div>
-        ${l.note ? `<div>${escapeHtml(l.note)}</div>` : ''}
+  const sortedHistory = w.history.map((h, i) => ({ h, i })).sort((a, b) => {
+    const d = (b.h.date || '').localeCompare(a.h.date || '');
+    return d !== 0 ? d : b.i - a.i;
+  }).map(x => x.h);
+
+  const historyRows = sortedHistory.map(h => `
+    <div class="purchase-entry">
+      <div class="purchase-row" style="border-left: 3px solid ${h.type === 'buy' ? 'var(--success)' : 'var(--danger)'}; padding-left: 8px;">
+        <div class="purchase-date">${formatDate(h.date)}${h.gift ? ' &#127873;' : ''}</div>
+        <div class="purchase-price">${h.type === 'buy' ? (h.price || 0).toFixed(2) + '&euro;' : '&ndash;'}</div>
+        <div class="purchase-qty" style="color: ${h.type === 'buy' ? 'var(--success)' : 'var(--danger)'};">${h.type === 'buy' ? '+' : '-'}${h.quantity}</div>
       </div>
-    `).join('') : '<div class="info-box">Noch keine Flasche geoeffnet.</div>';
-
-  const purchaseRows = [...w.purchaseLog].reverse().map(p => `
-    <div class="purchase-row">
-      <div class="purchase-date">${formatDate(p.date)}${p.gift ? ' &#127873;' : ''}</div>
-      <div class="purchase-price">${(p.price || 0).toFixed(2)}&euro;</div>
-      <div class="purchase-qty">${p.quantity}</div>
+      ${h.note ? `<div class="purchase-note">${escapeHtml(h.note)}</div>` : ''}
     </div>
   `).join('');
-  const purchaseTotalQty = w.purchaseLog.reduce((s, p) => s + (p.quantity || 0), 0);
-  const purchaseTotalCost = w.purchaseLog.reduce((s, p) => s + (p.price || 0) * (p.quantity || 0), 0);
+  const totalBought = w.history.filter(h => h.type === 'buy').reduce((s, h) => s + (h.quantity || 0), 0);
+  const totalOpened = w.history.filter(h => h.type === 'open').reduce((s, h) => s + (h.quantity || 0), 0);
+  const totalCost = w.history.filter(h => h.type === 'buy').reduce((s, h) => s + (h.price || 0) * (h.quantity || 0), 0);
 
   document.getElementById('modal-body').innerHTML = `
     ${w.photo ? `<img src="${w.photo}" alt="" style="width:100%; max-height:240px; object-fit:cover; border-radius:14px; margin-bottom:12px; border:1px solid var(--border);">` : ''}
 
     <div class="btn-row" style="margin-bottom: 12px;">
-      <button class="btn btn-secondary" onclick="openBottle()" ${w.quantity > 0 ? '' : 'disabled'}>Flasche &ouml;ffnen</button>
-      <button class="btn" onclick="buyBottle()">Flasche kaufen</button>
+      <button class="btn btn-secondary" onclick="showEntryForm('open')" ${w.quantity > 0 ? '' : 'disabled'}>Flasche &ouml;ffnen</button>
+      <button class="btn" onclick="showEntryForm('buy')">Flasche kaufen</button>
+    </div>
+
+    <div id="entry-form" class="card" style="display:none; margin-bottom: 12px;">
+      <div class="card-title" id="entry-form-title">Flasche &ouml;ffnen</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Menge</label>
+          <input type="number" id="entry-qty" min="1" step="1" value="1">
+        </div>
+        <div class="form-group" id="entry-price-group" style="display:none;">
+          <label>Preis pro Flasche (&euro;)</label>
+          <input type="number" id="entry-price" min="0" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notiz (optional)</label>
+        <textarea id="entry-note" placeholder="Wie war sie? Anlass, Eindruck..."></textarea>
+      </div>
+      <div class="form-group" id="entry-gift-group" style="display:none;">
+        <label>Geschenk?</label>
+        <div class="yn-toggle">
+          <button type="button" class="yn-btn yn-yes" id="entry-gift-yes" onclick="setEntryGift(true)">Ja</button>
+          <button type="button" class="yn-btn yn-no active" id="entry-gift-no" onclick="setEntryGift(false)">Nein</button>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="hideEntryForm()">Abbrechen</button>
+        <button class="btn" onclick="submitEntry()" id="entry-submit-btn">Speichern</button>
+      </div>
     </div>
 
     <div class="card" style="margin-bottom: 12px;">
@@ -1743,11 +1767,11 @@ function openWine(id) {
           <div class="purchase-price">Preis/Flasche</div>
           <div class="purchase-qty">Menge</div>
         </div>
-        ${purchaseRows}
+        ${historyRows}
         <div class="purchase-row purchase-total-row">
           <div class="purchase-date">Gesamt</div>
-          <div class="purchase-price">${purchaseTotalCost.toFixed(2)}&euro;</div>
-          <div class="purchase-qty">${purchaseTotalQty}</div>
+          <div class="purchase-price">${totalCost.toFixed(2)}&euro;</div>
+          <div class="purchase-qty">${totalBought - totalOpened}</div>
         </div>
       </div>
     </div>
@@ -1763,10 +1787,6 @@ function openWine(id) {
           </div>
         </span>
       </div>
-      ${!(w.quantity > 0) ? `<div class="warn-box" style="margin-top: 12px;">Alle Flaschen dieses Weins sind bereits getrunken.</div>` : ''}
-      <div style="margin-top: 12px;">
-        ${logHtml}
-      </div>
     </div>
 
     <div class="btn-row">
@@ -1778,34 +1798,86 @@ function openWine(id) {
   document.getElementById('wine-modal').classList.add('show');
 }
 
+function migrateHistory(w) {
+  if (w.history) return;
+  w.history = [];
+  (w.purchaseLog || []).forEach(p => w.history.push({ date: p.date, type: 'buy', quantity: p.quantity || 0, price: p.price || 0, gift: !!p.gift, note: '' }));
+  (w.consumedLog || []).forEach(c => w.history.push({ date: c.date, type: 'open', quantity: 1, note: c.note || '' }));
+  if (!w.history.length) {
+    w.history.push({ date: w.purchaseDate, type: 'buy', quantity: w.quantity || 0, price: w.price || 0, gift: !!w.gift, note: '' });
+  }
+  saveWines();
+}
+
 function closeModal() {
   document.getElementById('wine-modal').classList.remove('show');
   currentWineId = null;
 }
 
-function openBottle() {
-  const w = wines.find(x => x.id === currentWineId);
-  if (!w || w.quantity <= 0) return;
+let entryFormType = null;
+let entryFormGiftValue = false;
 
-  const note = prompt('Verkostungsnotiz (optional):', '') || '';
-  w.quantity -= 1;
-  w.consumedLog = w.consumedLog || [];
-  w.consumedLog.push({ date: new Date().toISOString().split('T')[0], note: note });
-
-  saveWines();
-  openWine(w.id);
-  renderWines();
-  renderStats();
-}
-
-function buyBottle() {
+function showEntryForm(type) {
   const w = wines.find(x => x.id === currentWineId);
   if (!w) return;
+  entryFormType = type;
+  entryFormGiftValue = false;
 
-  const isGift = confirm('War diese Flasche ein Geschenk?');
-  w.quantity += 1;
-  w.purchaseLog = w.purchaseLog || [];
-  w.purchaseLog.push({ date: new Date().toISOString().split('T')[0], price: w.price || 0, quantity: 1, gift: isGift });
+  document.getElementById('entry-form-title').textContent = type === 'open' ? 'Flasche öffnen' : 'Flasche kaufen';
+  document.getElementById('entry-submit-btn').textContent = type === 'open' ? 'Öffnen' : 'Kaufen';
+  document.getElementById('entry-qty').value = 1;
+  if (type === 'open') {
+    document.getElementById('entry-qty').max = w.quantity;
+  } else {
+    document.getElementById('entry-qty').removeAttribute('max');
+  }
+  document.getElementById('entry-price').value = w.price || '';
+  document.getElementById('entry-note').value = '';
+  document.getElementById('entry-price-group').style.display = type === 'buy' ? 'block' : 'none';
+  document.getElementById('entry-gift-group').style.display = type === 'buy' ? 'block' : 'none';
+  setEntryGift(false);
+
+  const form = document.getElementById('entry-form');
+  form.style.display = 'block';
+  form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function hideEntryForm() {
+  document.getElementById('entry-form').style.display = 'none';
+  entryFormType = null;
+}
+
+function setEntryGift(val) {
+  entryFormGiftValue = val;
+  document.getElementById('entry-gift-yes').classList.toggle('active', val === true);
+  document.getElementById('entry-gift-no').classList.toggle('active', val === false);
+}
+
+function submitEntry() {
+  const w = wines.find(x => x.id === currentWineId);
+  if (!w || !entryFormType) return;
+
+  const qty = parseInt(document.getElementById('entry-qty').value) || 0;
+  if (qty < 1) {
+    alert('Bitte eine Menge von mindestens 1 angeben.');
+    return;
+  }
+  const note = document.getElementById('entry-note').value.trim();
+  const today = new Date().toISOString().split('T')[0];
+  w.history = w.history || [];
+
+  if (entryFormType === 'open') {
+    if (qty > w.quantity) {
+      alert('Es sind nur ' + w.quantity + ' Flasche(n) im Bestand.');
+      return;
+    }
+    w.quantity -= qty;
+    w.history.push({ date: today, type: 'open', quantity: qty, note: note });
+  } else {
+    const price = parseFloat(document.getElementById('entry-price').value) || 0;
+    w.quantity += qty;
+    w.history.push({ date: today, type: 'buy', quantity: qty, price: price, gift: entryFormGiftValue, note: note });
+  }
 
   saveWines();
   openWine(w.id);
@@ -1845,7 +1917,10 @@ function renderStats() {
   const avgPrice = totalBottles > 0 ? totalValue / totalBottles : 0;
   const rated = wines.filter(w => w.rating > 0);
   const avgRating = rated.length > 0 ? rated.reduce((s, w) => s + w.rating, 0) / rated.length : 0;
-  const consumedTotal = wines.reduce((s, w) => s + (w.consumedLog ? w.consumedLog.length : 0), 0);
+  const consumedTotal = wines.reduce((s, w) => {
+    if (w.history) return s + w.history.filter(h => h.type === 'open').reduce((s2, h) => s2 + (h.quantity || 0), 0);
+    return s + (w.consumedLog ? w.consumedLog.length : 0);
+  }, 0);
 
   const byCategory = {};
   inStock.forEach(w => {
