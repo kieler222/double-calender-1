@@ -625,12 +625,31 @@
   }
 
   .modal-title {
-    font-size: 22px;
-    font-weight: 700;
     margin-bottom: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
+  }
+
+  .modal-title-group { min-width: 0; }
+
+  .modal-title-winery {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .modal-title-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .modal-close {
@@ -878,7 +897,10 @@
   <div class="modal-content">
     <div class="modal-handle"></div>
     <div class="modal-title">
-      <span id="modal-title-text">Wein Details</span>
+      <div class="modal-title-group">
+        <div id="modal-title-winery" class="modal-title-winery"></div>
+        <div id="modal-title-name" class="modal-title-name">Wein Details</div>
+      </div>
       <button class="modal-close" onclick="closeModal()">&times;</button>
     </div>
     <div id="modal-body"></div>
@@ -1375,7 +1397,9 @@ function openWine(id) {
   if (!w) return;
   currentWineId = id;
 
-  document.getElementById('modal-title-text').textContent = (w.winery ? w.winery + ' ' : '') + w.name;
+  document.getElementById('modal-title-winery').textContent = w.winery || '';
+  document.getElementById('modal-title-winery').style.display = w.winery ? 'block' : 'none';
+  document.getElementById('modal-title-name').textContent = w.name;
 
   const totalValue = (w.price || 0) * w.quantity;
   const logHtml = (w.consumedLog && w.consumedLog.length) ?
