@@ -1391,6 +1391,7 @@ function openWine(id) {
     <div class="card" style="margin-bottom: 12px;">
       <div class="card-title">Details ${starsDisplay(w.rating)}</div>
       ${w.winery ? `<div class="key-value"><span class="key">Weingut</span><span class="val">${escapeHtml(w.winery)}</span></div>` : ''}
+      <div class="key-value"><span class="key">Name</span><span class="val">${escapeHtml(w.name)}</span></div>
       <div class="key-value"><span class="key">Kategorie</span><span class="val">${w.category}</span></div>
       ${w.barcode ? `<div class="key-value"><span class="key">Barcode</span><span class="val">${escapeHtml(w.barcode)}</span></div>` : ''}
       <div class="key-value"><span class="key">Jahrgang</span><span class="val">${w.vintage || '&mdash;'}</span></div>
@@ -1400,8 +1401,17 @@ function openWine(id) {
       <div class="key-value"><span class="key">Preis / Flasche</span><span class="val">${(w.price || 0).toFixed(2)}&euro;</span></div>
       <div class="key-value"><span class="key">Bestand</span><span class="val">${w.quantity}&times;</span></div>
       <div class="key-value"><span class="key"><strong>Gesamtwert</strong></span><span class="val"><strong>${totalValue.toFixed(2)}&euro;</strong></span></div>
-      ${w.gift ? `<div class="key-value"><span class="key">Geschenk</span><span class="val"><span class="badge gift">Geschenk</span></span></div>` : ''}
+      <div class="key-value"><span class="key">Geschenk</span><span class="val">${w.gift ? '<span class="badge gift">Geschenk</span>' : 'Nein'}</span></div>
       ${(w.drinkFrom || w.drinkTo) ? `<div class="key-value"><span class="key">Trinkfenster</span><span class="val">${w.drinkFrom || '?'} &ndash; ${w.drinkTo || '?'} ${drinkWindowBadge(w)}</span></div>` : ''}
+      <div class="key-value">
+        <span class="key">Nochmal kaufen</span>
+        <span class="val">
+          <span class="switch">
+            <input type="checkbox" id="detail-buy-again" ${w.buyAgain ? 'checked' : ''} onchange="toggleBuyAgain(${w.id})">
+            <span class="switch-track"></span>
+          </span>
+        </span>
+      </div>
     </div>
 
     ${w.notes ? `<div class="card" style="margin-bottom: 12px;"><div class="card-title">Notizen</div><p style="font-size: 14px; color: var(--text); line-height: 1.6;">${escapeHtml(w.notes)}</p></div>` : ''}
@@ -1449,6 +1459,13 @@ function openBottle() {
   openWine(w.id);
   renderWines();
   renderStats();
+}
+
+function toggleBuyAgain(id) {
+  const w = wines.find(x => x.id === id);
+  if (!w) return;
+  w.buyAgain = document.getElementById('detail-buy-again').checked;
+  saveWines();
 }
 
 function deleteWine() {
