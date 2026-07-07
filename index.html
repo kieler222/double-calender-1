@@ -668,11 +668,11 @@
     margin-bottom: 16px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     gap: 12px;
   }
 
-  .modal-title-group { min-width: 0; }
+  .modal-title-group { min-width: 0; flex: 1; }
 
   .modal-title-winery {
     font-size: 18px;
@@ -695,6 +695,83 @@
     border-radius: 0;
   }
 
+  .yn-toggle {
+    display: inline-flex;
+    gap: 2px;
+    background: rgba(118, 118, 128, 0.12);
+    border-radius: 8px;
+    padding: 2px;
+  }
+
+  .yn-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 5px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .yn-btn.active {
+    background: #ffffff;
+    color: var(--text);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  .country-select {
+    position: relative;
+  }
+
+  .country-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    max-height: 260px;
+    overflow-y: auto;
+    z-index: 150;
+  }
+
+  .country-dropdown.show { display: block; }
+
+  .country-dropdown-heading {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 600;
+    color: var(--text-dim);
+    padding: 10px 14px 4px;
+  }
+
+  .country-option {
+    padding: 10px 14px;
+    font-size: 15px;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .country-option:active { background: var(--bg); }
+
+  .country-dropdown-empty {
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .modal-title-name-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
   .modal-title-name {
     font-size: 22px;
     font-weight: 700;
@@ -702,7 +779,18 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
   }
+
+  .modal-title-stars {
+    color: var(--gold);
+    font-size: 22px;
+    letter-spacing: 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .modal-title-stars .empty { color: var(--border); }
 
   .modal-close {
     background: rgba(118, 118, 128, 0.16);
@@ -882,13 +970,22 @@
       </div>
     </div>
 
+    <div class="form-group">
+      <label>Rebsorte</label>
+      <input type="text" id="w-grape" placeholder="z.B. Spätburgunder">
+    </div>
+
     <div class="form-row">
       <div class="form-group">
-        <label>Rebsorte</label>
-        <input type="text" id="w-grape" placeholder="z.B. Spätburgunder">
+        <label>Land</label>
+        <div class="country-select" id="country-select-wrapper">
+          <input type="text" id="w-country-search" autocomplete="off" placeholder="Land suchen&hellip;" onfocus="openCountryDropdown()" oninput="filterCountryDropdown()" onblur="handleCountryBlur()">
+          <input type="hidden" id="w-country">
+          <div class="country-dropdown" id="country-dropdown"></div>
+        </div>
       </div>
       <div class="form-group">
-        <label>Region / Land</label>
+        <label>Region</label>
         <input type="text" id="w-region" placeholder="z.B. Rheinhessen">
       </div>
     </div>
@@ -968,7 +1065,10 @@
     <div class="modal-title">
       <div class="modal-title-group">
         <div id="modal-title-winery" class="modal-title-winery"></div>
-        <div id="modal-title-name" class="modal-title-name">Wein Details</div>
+        <div class="modal-title-name-row">
+          <div id="modal-title-name" class="modal-title-name">Wein Details</div>
+          <div id="modal-title-stars" class="modal-title-stars"></div>
+        </div>
       </div>
       <button class="modal-close" onclick="closeModal()">&times;</button>
     </div>
@@ -1034,6 +1134,91 @@ function hexToRgba(hex, alpha) {
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return 'rgba(' + r + ', ' + g + ', ' + b + ', ' + alpha + ')';
+}
+
+// === COUNTRY FLAGS ===
+const COUNTRY_FLAGS = {
+  'Deutschland': '🇩🇪',
+  'Frankreich': '🇫🇷',
+  'Italien': '🇮🇹',
+  'Spanien': '🇪🇸',
+  'Portugal': '🇵🇹',
+  'Österreich': '🇦🇹',
+  'Schweiz': '🇨🇭',
+  'USA': '🇺🇸',
+  'Argentinien': '🇦🇷',
+  'Chile': '🇨🇱',
+  'Australien': '🇦🇺',
+  'Neuseeland': '🇳🇿',
+  'Südafrika': '🇿🇦',
+  'Griechenland': '🇬🇷',
+  'Ungarn': '🇭🇺'
+};
+
+function countryFlag(country) {
+  return COUNTRY_FLAGS[country] || '';
+}
+
+// === COUNTRY DROPDOWN ===
+function countryFrequency() {
+  const counts = {};
+  wines.forEach(w => {
+    if (w.country) counts[w.country] = (counts[w.country] || 0) + 1;
+  });
+  return counts;
+}
+
+function countryOptionHtml(c) {
+  return '<div class="country-option" onmousedown="selectCountry(\'' + c.replace(/'/g, "\\'") + '\')">' +
+    (COUNTRY_FLAGS[c] || '') + ' ' + c + '</div>';
+}
+
+function renderCountryDropdown(filterText) {
+  const dropdown = document.getElementById('country-dropdown');
+  const counts = countryFrequency();
+  const allCountries = Object.keys(COUNTRY_FLAGS);
+  const filter = (filterText || '').toLowerCase().trim();
+  const matching = allCountries.filter(c => c.toLowerCase().includes(filter));
+  const frequent = matching.filter(c => counts[c]).sort((a, b) => counts[b] - counts[a]);
+  const rest = matching.filter(c => !counts[c]).sort((a, b) => a.localeCompare(b, 'de'));
+
+  let html = '';
+  if (frequent.length) {
+    html += '<div class="country-dropdown-heading">H&auml;ufig in deinem Keller</div>';
+    html += frequent.map(countryOptionHtml).join('');
+  }
+  if (rest.length) {
+    html += '<div class="country-dropdown-heading">Alle L&auml;nder</div>';
+    html += rest.map(countryOptionHtml).join('');
+  }
+  if (!frequent.length && !rest.length) {
+    html = '<div class="country-dropdown-empty">Keine Treffer</div>';
+  }
+  dropdown.innerHTML = html;
+}
+
+function openCountryDropdown() {
+  renderCountryDropdown(document.getElementById('w-country-search').value);
+  document.getElementById('country-dropdown').classList.add('show');
+}
+
+function filterCountryDropdown() {
+  renderCountryDropdown(document.getElementById('w-country-search').value);
+  document.getElementById('country-dropdown').classList.add('show');
+}
+
+function selectCountry(c) {
+  document.getElementById('w-country').value = c;
+  document.getElementById('w-country-search').value = c;
+  document.getElementById('country-dropdown').classList.remove('show');
+}
+
+function handleCountryBlur() {
+  setTimeout(() => {
+    const typed = document.getElementById('w-country-search').value.trim();
+    document.getElementById('w-country').value = typed;
+    document.getElementById('country-dropdown').classList.remove('show');
+  }, 150);
 }
 
 // === INIT ===
@@ -1322,6 +1507,7 @@ function saveWine() {
     category: document.getElementById('w-category').value,
     vintage: parseInt(document.getElementById('w-vintage').value) || null,
     grape: document.getElementById('w-grape').value.trim(),
+    country: document.getElementById('w-country').value,
     region: document.getElementById('w-region').value.trim(),
     quantity: quantity,
     price: parseFloat(document.getElementById('w-price').value) || 0,
@@ -1363,6 +1549,8 @@ function resetForm() {
   document.getElementById('w-category').value = 'Rotwein';
   document.getElementById('w-vintage').value = '';
   document.getElementById('w-grape').value = '';
+  document.getElementById('w-country').value = '';
+  document.getElementById('w-country-search').value = '';
   document.getElementById('w-region').value = '';
   document.getElementById('w-quantity').value = '1';
   document.getElementById('w-price').value = '';
@@ -1398,6 +1586,8 @@ function editWine(id) {
   document.getElementById('w-category').value = w.category;
   document.getElementById('w-vintage').value = w.vintage || '';
   document.getElementById('w-grape').value = w.grape || '';
+  document.getElementById('w-country').value = w.country || '';
+  document.getElementById('w-country-search').value = w.country || '';
   document.getElementById('w-region').value = w.region || '';
   document.getElementById('w-quantity').value = w.quantity;
   document.getElementById('w-price').value = w.price || '';
@@ -1479,6 +1669,7 @@ function openWine(id) {
   document.getElementById('modal-title-winery').textContent = w.winery || '';
   document.getElementById('modal-title-winery').style.display = w.winery ? 'block' : 'none';
   document.getElementById('modal-title-name').textContent = w.name;
+  document.getElementById('modal-title-stars').innerHTML = starsDisplay(w.rating);
 
   const totalValue = (w.price || 0) * w.quantity;
   const logHtml = (w.consumedLog && w.consumedLog.length) ?
@@ -1492,42 +1683,47 @@ function openWine(id) {
   document.getElementById('modal-body').innerHTML = `
     ${w.photo ? `<img src="${w.photo}" alt="" style="width:100%; max-height:240px; object-fit:cover; border-radius:14px; margin-bottom:12px; border:1px solid var(--border);">` : ''}
     <div class="card" style="margin-bottom: 12px;">
-      <div class="card-title">${starsDisplay(w.rating)}</div>
+      <div class="card-title">Details</div>
       <div class="key-value"><span class="key">Kategorie</span><span class="val">${w.category}</span></div>
       ${w.barcode ? `<div class="key-value"><span class="key">Barcode</span><span class="val">${escapeHtml(w.barcode)}</span></div>` : ''}
       <div class="key-value"><span class="key">Jahrgang</span><span class="val">${w.vintage || '&mdash;'}</span></div>
       <div class="key-value"><span class="key">Rebsorte</span><span class="val">${escapeHtml(w.grape) || '&mdash;'}</span></div>
-      <div class="key-value"><span class="key">Region</span><span class="val">${escapeHtml(w.region) || '&mdash;'}</span></div>
+      <div class="key-value"><span class="key">Land / Region</span><span class="val">${countryFlag(w.country) ? countryFlag(w.country) + ' ' : ''}${escapeHtml(w.region) || '&mdash;'}</span></div>
+      ${(w.drinkFrom || w.drinkTo) ? `<div class="key-value"><span class="key">Trinkfenster</span><span class="val">${w.drinkFrom || '?'} &ndash; ${w.drinkTo || '?'} ${drinkWindowBadge(w)}</span></div>` : ''}
+    </div>
+
+    <div class="card" style="margin-bottom: 12px;">
+      <div class="card-title">Verlauf</div>
       <div class="key-value"><span class="key">Kaufdatum</span><span class="val">${formatDate(w.purchaseDate)}</span></div>
       <div class="key-value"><span class="key">Preis / Flasche</span><span class="val">${(w.price || 0).toFixed(2)}&euro;</span></div>
       <div class="key-value"><span class="key">Bestand</span><span class="val">${w.quantity}&times;</span></div>
       <div class="key-value"><span class="key"><strong>Gesamtwert</strong></span><span class="val"><strong>${totalValue.toFixed(2)}&euro;</strong></span></div>
       <div class="key-value"><span class="key">Geschenk</span><span class="val">${w.gift ? '<span class="badge gift">Geschenk</span>' : 'Nein'}</span></div>
-      ${(w.drinkFrom || w.drinkTo) ? `<div class="key-value"><span class="key">Trinkfenster</span><span class="val">${w.drinkFrom || '?'} &ndash; ${w.drinkTo || '?'} ${drinkWindowBadge(w)}</span></div>` : ''}
-      <div class="key-value">
-        <span class="key">Nochmal kaufen</span>
-        <span class="val">
-          <input type="checkbox" class="detail-checkbox" id="detail-buy-again" ${w.buyAgain ? 'checked' : ''} onchange="toggleBuyAgain(${w.id})">
-        </span>
-      </div>
     </div>
 
     ${w.notes ? `<div class="card" style="margin-bottom: 12px;"><div class="card-title">Notizen</div><p style="font-size: 14px; color: var(--text); line-height: 1.6;">${escapeHtml(w.notes)}</p></div>` : ''}
 
-    ${w.quantity > 0 ? `
-      <div class="card" style="margin-bottom: 12px;">
-        <div class="card-title">Flasche oeffnen</div>
-        <div class="form-group">
+    <div class="card" style="margin-bottom: 12px;">
+      <div class="card-title">Verkostung</div>
+      <div class="key-value">
+        <span class="key">Nochmal kaufen?</span>
+        <span class="val">
+          <div class="yn-toggle">
+            <button type="button" class="yn-btn ${w.buyAgain === true ? 'active' : ''}" onclick="setBuyAgain(${w.id}, true)">Ja</button>
+            <button type="button" class="yn-btn ${w.buyAgain !== true ? 'active' : ''}" onclick="setBuyAgain(${w.id}, false)">Nein</button>
+          </div>
+        </span>
+      </div>
+      ${w.quantity > 0 ? `
+        <div class="form-group" style="margin-top: 14px;">
           <label>Verkostungsnotiz (optional)</label>
           <textarea id="open-note" placeholder="Wie war sie? Anlass, Eindruck..."></textarea>
         </div>
-        <button class="btn" onclick="openBottle()">Flasche als getrunken markieren (&minus;1)</button>
+        <button class="btn" onclick="openBottle()">1 Flasche &ouml;ffnen</button>
+      ` : `<div class="warn-box" style="margin-top: 12px;">Alle Flaschen dieses Weins sind bereits getrunken.</div>`}
+      <div style="margin-top: 12px;">
+        ${logHtml}
       </div>
-    ` : `<div class="warn-box">Alle Flaschen dieses Weins sind bereits getrunken.</div>`}
-
-    <div class="card" style="margin-bottom: 12px;">
-      <div class="card-title">Verkostungshistorie</div>
-      ${logHtml}
     </div>
 
     <div class="btn-row">
@@ -1559,11 +1755,12 @@ function openBottle() {
   renderStats();
 }
 
-function toggleBuyAgain(id) {
+function setBuyAgain(id, value) {
   const w = wines.find(x => x.id === id);
   if (!w) return;
-  w.buyAgain = document.getElementById('detail-buy-again').checked;
+  w.buyAgain = value;
   saveWines();
+  openWine(id);
 }
 
 function deleteWine() {
