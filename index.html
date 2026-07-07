@@ -39,19 +39,18 @@
     --info-rgb: 50, 173, 230;
   }
 
-  html, body {
+  html {
+    overflow-x: hidden;
+  }
+
+  body {
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
     font-size: 16px;
     line-height: 1.4;
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
     min-height: 100vh;
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  body {
     padding: env(safe-area-inset-top) 0 calc(70px + env(safe-area-inset-bottom)) 0;
   }
 
@@ -358,6 +357,47 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
     color: var(--text);
     font-weight: 600;
+  }
+
+  /* Cellar summary */
+  .cellar-summary {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .cellar-summary-item {
+    flex: 1;
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .cellar-summary-label {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .cellar-summary-value {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-top: 3px;
+  }
+
+  .cellar-summary-number {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cellar-summary-unit {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-dim);
   }
 
   /* Wine list */
@@ -761,6 +801,23 @@
 
 <!-- KELLER PAGE -->
 <div class="page active" id="page-keller">
+  <div class="cellar-summary">
+    <div class="cellar-summary-item">
+      <div class="cellar-summary-label">Inventar &#127863;</div>
+      <div class="cellar-summary-value">
+        <span class="cellar-summary-number" id="summary-count">0</span>
+        <span class="cellar-summary-unit" id="summary-count-unit">Weinflaschen</span>
+      </div>
+    </div>
+    <div class="cellar-summary-item">
+      <div class="cellar-summary-label">Wert &#128176;</div>
+      <div class="cellar-summary-value">
+        <span class="cellar-summary-number" id="summary-value">0</span>
+        <span class="cellar-summary-unit">Euros</span>
+      </div>
+    </div>
+  </div>
+
   <div class="filter-row" id="status-filter">
     <button class="pill active" data-status="active" onclick="setStatusFilter('active')">Im Keller</button>
     <button class="pill" data-status="all" onclick="setStatusFilter('all')">Alle</button>
@@ -1363,7 +1420,17 @@ function saveWines() {
 }
 
 // === RENDER WINE LIST ===
+function updateCellarSummary() {
+  const inStock = wines.filter(w => w.quantity > 0);
+  const totalBottles = inStock.reduce((s, w) => s + w.quantity, 0);
+  const totalValue = inStock.reduce((s, w) => s + (w.price || 0) * w.quantity, 0);
+  document.getElementById('summary-count').textContent = totalBottles;
+  document.getElementById('summary-count-unit').textContent = totalBottles === 1 ? 'Weinflasche' : 'Weinflaschen';
+  document.getElementById('summary-value').textContent = Math.round(totalValue).toLocaleString('de-DE');
+}
+
 function renderWines() {
+  updateCellarSummary();
   const list = document.getElementById('wines-list');
   let filtered = wines.filter(w => {
     if (statusFilter === 'active' && w.quantity <= 0) return false;
