@@ -635,12 +635,24 @@
   .modal-title-group { min-width: 0; }
 
   .modal-title-winery {
-    font-size: 14px;
+    font-size: 18px;
     font-weight: 400;
     color: var(--text-dim);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .detail-checkbox {
+    width: 22px;
+    height: 22px;
+    accent-color: var(--accent);
+    -webkit-appearance: checkbox;
+    appearance: auto;
+    background: none;
+    border: none;
+    padding: 0;
+    border-radius: 0;
   }
 
   .modal-title-name {
@@ -1413,9 +1425,7 @@ function openWine(id) {
   document.getElementById('modal-body').innerHTML = `
     ${w.photo ? `<img src="${w.photo}" alt="" style="width:100%; max-height:240px; object-fit:cover; border-radius:14px; margin-bottom:12px; border:1px solid var(--border);">` : ''}
     <div class="card" style="margin-bottom: 12px;">
-      <div class="card-title">Details ${starsDisplay(w.rating)}</div>
-      ${w.winery ? `<div class="key-value"><span class="key">Weingut</span><span class="val">${escapeHtml(w.winery)}</span></div>` : ''}
-      <div class="key-value"><span class="key">Name</span><span class="val">${escapeHtml(w.name)}</span></div>
+      <div class="card-title">${starsDisplay(w.rating)}</div>
       <div class="key-value"><span class="key">Kategorie</span><span class="val">${w.category}</span></div>
       ${w.barcode ? `<div class="key-value"><span class="key">Barcode</span><span class="val">${escapeHtml(w.barcode)}</span></div>` : ''}
       <div class="key-value"><span class="key">Jahrgang</span><span class="val">${w.vintage || '&mdash;'}</span></div>
@@ -1430,10 +1440,7 @@ function openWine(id) {
       <div class="key-value">
         <span class="key">Nochmal kaufen</span>
         <span class="val">
-          <span class="switch">
-            <input type="checkbox" id="detail-buy-again" ${w.buyAgain ? 'checked' : ''} onchange="toggleBuyAgain(${w.id})">
-            <span class="switch-track"></span>
-          </span>
+          <input type="checkbox" class="detail-checkbox" id="detail-buy-again" ${w.buyAgain ? 'checked' : ''} onchange="toggleBuyAgain(${w.id})">
         </span>
       </div>
     </div>
