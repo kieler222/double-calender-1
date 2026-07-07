@@ -555,9 +555,6 @@
   }
 
   .badge.gift { background: rgba(var(--gold-rgb), 0.16); color: var(--gold); }
-  .badge.ready { background: rgba(var(--success-rgb), 0.14); color: var(--success); }
-  .badge.young { background: rgba(var(--info-rgb), 0.14); color: var(--info); }
-  .badge.over { background: rgba(var(--warning-rgb), 0.22); color: #8a6d00; }
   .badge.empty { background: rgba(var(--text-dim-rgb), 0.14); color: var(--text-dim); }
 
   /* Stats */
@@ -715,10 +712,18 @@
   }
 
   .yn-btn.active {
-    background: #ffffff;
-    color: var(--text);
     font-weight: 600;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  .yn-btn.active.yn-yes {
+    background: var(--success);
+    color: #ffffff;
+  }
+
+  .yn-btn.active.yn-no {
+    background: var(--danger);
+    color: #ffffff;
   }
 
   .country-select {
@@ -1016,19 +1021,6 @@
           <span class="switch-track"></span>
         </span>
       </label>
-    </div>
-
-    <div class="section-divider"><div class="line"></div><span class="label">Trinkfenster (optional)</span><div class="line"></div></div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>Trinkreif ab (Jahr)</label>
-        <input type="number" step="1" id="w-drink-from" placeholder="2024">
-      </div>
-      <div class="form-group">
-        <label>Trinken bis (Jahr)</label>
-        <input type="number" step="1" id="w-drink-to" placeholder="2030">
-      </div>
     </div>
 
     <div class="section-divider"><div class="line"></div><span class="label">Bewertung & Notizen</span><div class="line"></div></div>
@@ -1333,15 +1325,6 @@ function starsDisplay(rating) {
   return html;
 }
 
-// === DRINK WINDOW HELPERS ===
-function drinkWindowBadge(w) {
-  if (!w.drinkFrom && !w.drinkTo) return '';
-  const year = new Date().getFullYear();
-  if (w.drinkTo && year > w.drinkTo) return '<span class="badge over">Trinkfenster vorbei</span>';
-  if (w.drinkFrom && year < w.drinkFrom) return '<span class="badge young">Noch jung</span>';
-  return '<span class="badge ready">Trinkreif</span>';
-}
-
 // === BARCODE: STATUS DISPLAY ===
 function setBarcodeStatus(message, kind) {
   const el = document.getElementById('barcode-status');
@@ -1513,8 +1496,6 @@ function saveWine() {
     price: parseFloat(document.getElementById('w-price').value) || 0,
     purchaseDate: document.getElementById('w-purchase-date').value,
     gift: document.getElementById('w-gift').checked,
-    drinkFrom: parseInt(document.getElementById('w-drink-from').value) || null,
-    drinkTo: parseInt(document.getElementById('w-drink-to').value) || null,
     rating: parseInt(document.getElementById('w-rating').value) || 0,
     notes: document.getElementById('w-notes').value
   };
@@ -1556,8 +1537,6 @@ function resetForm() {
   document.getElementById('w-price').value = '';
   document.getElementById('w-purchase-date').valueAsDate = new Date();
   document.getElementById('w-gift').checked = false;
-  document.getElementById('w-drink-from').value = '';
-  document.getElementById('w-drink-to').value = '';
   document.getElementById('w-notes').value = '';
   setStarInputValue(0);
 }
@@ -1593,8 +1572,6 @@ function editWine(id) {
   document.getElementById('w-price').value = w.price || '';
   document.getElementById('w-purchase-date').value = w.purchaseDate || '';
   document.getElementById('w-gift').checked = !!w.gift;
-  document.getElementById('w-drink-from').value = w.drinkFrom || '';
-  document.getElementById('w-drink-to').value = w.drinkTo || '';
   document.getElementById('w-notes').value = w.notes || '';
   setStarInputValue(w.rating || 0);
 
@@ -1689,7 +1666,6 @@ function openWine(id) {
       <div class="key-value"><span class="key">Jahrgang</span><span class="val">${w.vintage || '&mdash;'}</span></div>
       <div class="key-value"><span class="key">Rebsorte</span><span class="val">${escapeHtml(w.grape) || '&mdash;'}</span></div>
       <div class="key-value"><span class="key">Land / Region</span><span class="val">${countryFlag(w.country) ? countryFlag(w.country) + ' ' : ''}${escapeHtml(w.region) || '&mdash;'}</span></div>
-      ${(w.drinkFrom || w.drinkTo) ? `<div class="key-value"><span class="key">Trinkfenster</span><span class="val">${w.drinkFrom || '?'} &ndash; ${w.drinkTo || '?'} ${drinkWindowBadge(w)}</span></div>` : ''}
     </div>
 
     <div class="card" style="margin-bottom: 12px;">
@@ -1709,8 +1685,8 @@ function openWine(id) {
         <span class="key">Nochmal kaufen?</span>
         <span class="val">
           <div class="yn-toggle">
-            <button type="button" class="yn-btn ${w.buyAgain === true ? 'active' : ''}" onclick="setBuyAgain(${w.id}, true)">Ja</button>
-            <button type="button" class="yn-btn ${w.buyAgain !== true ? 'active' : ''}" onclick="setBuyAgain(${w.id}, false)">Nein</button>
+            <button type="button" class="yn-btn yn-yes ${w.buyAgain === true ? 'active' : ''}" onclick="setBuyAgain(${w.id}, true)">Ja</button>
+            <button type="button" class="yn-btn yn-no ${w.buyAgain === false ? 'active' : ''}" onclick="setBuyAgain(${w.id}, false)">Nein</button>
           </div>
         </span>
       </div>
@@ -1795,10 +1771,6 @@ function renderStats() {
   });
   const maxCat = Math.max(1, ...Object.values(byCategory));
 
-  const year = new Date().getFullYear();
-  const readyNow = inStock.filter(w => (w.drinkFrom || w.drinkTo) && year >= (w.drinkFrom || -Infinity) && year <= (w.drinkTo || Infinity));
-  const overdue = inStock.filter(w => w.drinkTo && year > w.drinkTo);
-
   const topRated = [...wines].filter(w => w.rating > 0).sort((a, b) => b.rating - a.rating).slice(0, 5);
 
   content.innerHTML = `
@@ -1834,13 +1806,6 @@ function renderStats() {
           <div class="bar-count">${count}</div>
         </div>
       `).join('') : '<div class="info-box">Keine Flaschen im Bestand.</div>'}
-    </div>
-
-    <div class="card" style="margin-top: 12px;">
-      <div class="card-title">Trinkfenster</div>
-      ${readyNow.length ? `<div class="info-box"><strong>${readyNow.length}</strong> Wein${readyNow.length === 1 ? '' : 'e'} gerade trinkreif.</div>` : ''}
-      ${overdue.length ? `<div class="warn-box"><strong>${overdue.length}</strong> Wein${overdue.length === 1 ? '' : 'e'} ueber dem Trinkfenster &ndash; bald oeffnen!</div>` : ''}
-      ${!readyNow.length && !overdue.length ? '<div class="info-box">Keine besonderen Hinweise zum Trinkfenster.</div>' : ''}
     </div>
 
     ${topRated.length ? `
