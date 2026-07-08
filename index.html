@@ -6,9 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Philipps Weinsammlung">
-<meta name="theme-color" content="#f2f2f7">
+<meta name="theme-color" content="#faf9f5">
 <title>Philipp&rsquo;s Weinsammlung</title>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -1085,6 +1086,10 @@
         </div>
       </div>
       <input type="file" accept="image/*" capture="environment" id="w-photo-input" style="display:none;" onchange="handlePhotoSelected(event)">
+
+      <button type="button" class="btn btn-secondary" style="margin-top: 10px;" onclick="document.getElementById('w-label-input').click()">Etikett scannen</button>
+      <input type="file" accept="image/*" capture="environment" id="w-label-input" style="display:none;" onchange="handleLabelSelected(event)">
+      <div id="label-status" style="display:none; margin-top: 8px;"></div>
     </div>
 
     <div class="form-group">
@@ -1561,6 +1566,129 @@ function lookupBarcodeManual() {
   handleBarcode(document.getElementById('w-barcode').value);
 }
 
+// === LABEL SCAN: STATUS DISPLAY ===
+function setLabelStatus(message, kind) {
+  const el = document.getElementById('label-status');
+  el.className = kind === 'warn' ? 'warn-box' : 'info-box';
+  el.textContent = message;
+  el.style.display = 'block';
+}
+
+function hideLabelStatus() {
+  const el = document.getElementById('label-status');
+  el.style.display = 'none';
+  el.textContent = '';
+}
+
+// === LABEL SCAN: TEXT HEURISTICS ===
+const GRAPE_KEYWORDS = [
+  'Riesling', 'Spätburgunder', 'Weißburgunder', 'Grauburgunder', 'Silvaner', 'Müller-Thurgau',
+  'Gewürztraminer', 'Grüner Veltliner', 'Sauvignon Blanc', 'Chardonnay', 'Cabernet Sauvignon',
+  'Cabernet Franc', 'Merlot', 'Pinot Noir', 'Pinot Grigio', 'Pinot Gris', 'Syrah', 'Shiraz',
+  'Grenache', 'Garnacha', 'Tempranillo', 'Sangiovese', 'Nebbiolo', 'Zinfandel', 'Primitivo',
+  'Malbec', "Nero d'Avola", 'Chenin Blanc', 'Viognier', 'Barbera', 'Dolcetto', 'Glera',
+  'Tannat', 'Carmenère', 'Albariño', 'Verdejo', 'Moscato', 'Muskateller'
+];
+
+function guessGrape(text) {
+  for (const g of GRAPE_KEYWORDS) {
+    const escaped = g.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (new RegExp('\\b' + escaped + '\\b', 'i').test(text)) return g;
+  }
+  return null;
+}
+
+function guessVintage(text) {
+  const m = (text || '').match(/\b(19|20)\d{2}\b/);
+  return m ? parseInt(m[0]) : null;
+}
+
+const WINERY_PREFIX_RE = /\b(Weingut|Weing[uü]ter|Ch[âa]teau|Domaine|Cantina|Bodega|Tenuta|Winery|Estate|Schloss)\b/i;
+const VOLUME_LINE_RE = /^\d{1,3}([.,]\d+)?\s?(%|vol)/i;
+
+function parseLabelLines(rawText) {
+  return (rawText || '')
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 1 && !VOLUME_LINE_RE.test(l));
+}
+
+// === LABEL SCAN: ONLINE SUMMARY (Wikipedia) ===
+async function fetchWineSummary(query) {
+  if (!query) return null;
+  for (const lang of ['de', 'en']) {
+    try {
+      const searchRes = await fetch('https://' + lang + '.wikipedia.org/w/api.php?action=opensearch&search=' + encodeURIComponent(query) + '&limit=1&namespace=0&format=json&origin=*');
+      const searchData = await searchRes.json();
+      const title = searchData[1] && searchData[1][0];
+      if (!title) continue;
+      const sumRes = await fetch('https://' + lang + '.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title));
+      const sumData = await sumRes.json();
+      if (sumData.extract) return sumData.extract;
+    } catch (e) { /* try next language */ }
+  }
+  return null;
+}
+
+// === LABEL SCAN: CAPTURE, OCR, FILL FORM ===
+function handleLabelSelected(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+
+  if (typeof Tesseract === 'undefined') {
+    setLabelStatus('Texterkennung konnte nicht geladen werden (keine Internetverbindung oder durch einen Inhaltsblocker verhindert?). Bitte Felder manuell ausfüllen.', 'warn');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    resizePhoto(ev.target.result, 640, 0.72, (resizedDataUrl) => {
+      currentPhotoDataUrl = resizedDataUrl;
+      updatePhotoPreview();
+    });
+
+    setLabelStatus('Etikett wird gelesen...', 'info');
+    Tesseract.recognize(ev.target.result, 'deu+eng')
+      .then(result => processLabelText(result.data.text))
+      .catch(() => setLabelStatus('Etikett konnte nicht gelesen werden. Bitte Felder manuell ausfüllen.', 'warn'));
+  };
+  reader.readAsDataURL(file);
+}
+
+async function processLabelText(rawText) {
+  const lines = parseLabelLines(rawText);
+  if (!lines.length) {
+    setLabelStatus('Auf dem Etikett wurde kein Text erkannt. Bitte Felder manuell ausfüllen.', 'warn');
+    return;
+  }
+
+  const fullText = lines.join(' ');
+  const vintage = guessVintage(fullText);
+  const grape = guessGrape(fullText);
+  const category = guessCategory(fullText);
+  const wineryLine = lines.find(l => WINERY_PREFIX_RE.test(l));
+  const nameLine = lines.find(l => l !== wineryLine) || lines[0];
+
+  if (wineryLine && !document.getElementById('w-winery').value) document.getElementById('w-winery').value = wineryLine;
+  if (nameLine && !document.getElementById('w-name').value) document.getElementById('w-name').value = nameLine;
+  if (vintage && !document.getElementById('w-vintage').value) document.getElementById('w-vintage').value = vintage;
+  if (grape && !document.getElementById('w-grape').value) document.getElementById('w-grape').value = grape;
+  if (category) document.getElementById('w-category').value = category;
+
+  setLabelStatus('Etikett gelesen. Suche Zusatzinfos online...', 'info');
+
+  const query = (wineryLine || nameLine || lines[0]).trim();
+  const summary = await fetchWineSummary(query);
+  if (summary) {
+    const notesField = document.getElementById('w-notes');
+    if (!notesField.value) notesField.value = summary;
+    setLabelStatus('Etikett gelesen, Zusatzinfos aus dem Web ergänzt. Bitte alle Felder prüfen.', 'info');
+  } else {
+    setLabelStatus('Etikett gelesen. Keine Zusatzinfos im Web gefunden – bitte Felder prüfen und ergänzen.', 'warn');
+  }
+}
+
 // === BARCODE: CAMERA SCANNER ===
 function openScanner() {
   if (typeof Html5Qrcode === 'undefined') {
@@ -1686,6 +1814,7 @@ function resetForm() {
   updatePhotoPreview();
   document.getElementById('w-barcode').value = '';
   hideBarcodeStatus();
+  hideLabelStatus();
   document.getElementById('w-category').value = 'Rotwein';
   document.getElementById('w-vintage').value = '';
   document.getElementById('w-grape').value = '';
@@ -1721,6 +1850,7 @@ function editWine(id) {
   updatePhotoPreview();
   document.getElementById('w-barcode').value = w.barcode || '';
   hideBarcodeStatus();
+  hideLabelStatus();
   document.getElementById('w-category').value = w.category;
   document.getElementById('w-vintage').value = w.vintage || '';
   document.getElementById('w-grape').value = w.grape || '';
