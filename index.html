@@ -782,28 +782,36 @@
   }
 
   .yn-toggle {
-    display: inline-flex;
+    display: flex;
     gap: 2px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 2px;
+    width: 100%;
   }
 
   .yn-btn {
+    flex: 1;
     border: none;
     background: transparent;
     color: var(--text-dim);
     font-size: 13px;
     font-weight: 500;
-    padding: 5px 14px;
+    padding: 7px 10px;
     border-radius: 6px;
     cursor: pointer;
+    white-space: nowrap;
   }
 
   .yn-btn.active {
     font-weight: 600;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  .yn-btn.active.yn-neutral {
+    background: rgba(var(--text-dim-rgb), 0.18);
+    color: var(--text);
   }
 
   .yn-btn.active.yn-yes {
@@ -1890,14 +1898,11 @@ function openWine(id) {
 
     <div class="card" style="margin-bottom: 12px;">
       <div class="card-title">Verkostung</div>
-      <div class="key-value">
-        <span class="key">Nochmal kaufen?</span>
-        <span class="val">
-          <div class="yn-toggle">
-            <button type="button" class="yn-btn yn-yes ${w.buyAgain === true ? 'active' : ''}" onclick="setBuyAgain(${w.id}, true)">Ja</button>
-            <button type="button" class="yn-btn yn-no ${w.buyAgain === false ? 'active' : ''}" onclick="setBuyAgain(${w.id}, false)">Nein</button>
-          </div>
-        </span>
+      <div style="font-size: 15px; color: var(--text); margin-bottom: 10px;">Nochmal kaufen?</div>
+      <div class="yn-toggle">
+        <button type="button" class="yn-btn yn-neutral ${(w.buyAgain === true || w.buyAgain === false) ? '' : 'active'}" onclick="setBuyAgain(${w.id}, null)">Unentschlossen</button>
+        <button type="button" class="yn-btn yn-yes ${w.buyAgain === true ? 'active' : ''}" onclick="setBuyAgain(${w.id}, true)">Ja</button>
+        <button type="button" class="yn-btn yn-no ${w.buyAgain === false ? 'active' : ''}" onclick="setBuyAgain(${w.id}, false)">Nein</button>
       </div>
     </div>
   `;
