@@ -9,7 +9,6 @@
 <meta name="theme-color" content="#faf9f5">
 <title>Philipp&rsquo;s Weinsammlung</title>
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -1580,64 +1579,38 @@ function hideLabelStatus() {
   el.textContent = '';
 }
 
-// === LABEL SCAN: TEXT HEURISTICS ===
-const GRAPE_KEYWORDS = [
-  'Riesling', 'Spätburgunder', 'Weißburgunder', 'Grauburgunder', 'Silvaner', 'Müller-Thurgau',
-  'Gewürztraminer', 'Grüner Veltliner', 'Sauvignon Blanc', 'Chardonnay', 'Cabernet Sauvignon',
-  'Cabernet Franc', 'Merlot', 'Pinot Noir', 'Pinot Grigio', 'Pinot Gris', 'Syrah', 'Shiraz',
-  'Grenache', 'Garnacha', 'Tempranillo', 'Sangiovese', 'Nebbiolo', 'Zinfandel', 'Primitivo',
-  'Malbec', "Nero d'Avola", 'Chenin Blanc', 'Viognier', 'Barbera', 'Dolcetto', 'Glera',
-  'Tannat', 'Carmenère', 'Albariño', 'Verdejo', 'Moscato', 'Muskateller'
-];
+// === LABEL SCAN: GEMINI API KEY ===
+function getGeminiKey() {
+  return localStorage.getItem('gemini_api_key') || '';
+}
 
-function guessGrape(text) {
-  for (const g of GRAPE_KEYWORDS) {
-    const escaped = g.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    if (new RegExp('\\b' + escaped + '\\b', 'i').test(text)) return g;
+function saveGeminiKey() {
+  const input = document.getElementById('gemini-key-input');
+  const val = input.value.trim();
+  if (!val) {
+    alert('Bitte einen API-Key eingeben.');
+    return;
   }
-  return null;
+  localStorage.setItem('gemini_api_key', val);
+  renderStats();
+  alert('API-Key gespeichert.');
 }
 
-function guessVintage(text) {
-  const m = (text || '').match(/\b(19|20)\d{2}\b/);
-  return m ? parseInt(m[0]) : null;
+function clearGeminiKey() {
+  if (!confirm('API-Key wirklich entfernen?')) return;
+  localStorage.removeItem('gemini_api_key');
+  renderStats();
 }
 
-const WINERY_PREFIX_RE = /\b(Weingut|Weing[uü]ter|Ch[âa]teau|Domaine|Cantina|Bodega|Tenuta|Winery|Estate|Schloss)\b/i;
-const VOLUME_LINE_RE = /^\d{1,3}([.,]\d+)?\s?(%|vol)/i;
-
-function parseLabelLines(rawText) {
-  return (rawText || '')
-    .split('\n')
-    .map(l => l.trim())
-    .filter(l => l.length > 1 && !VOLUME_LINE_RE.test(l));
-}
-
-// === LABEL SCAN: ONLINE SUMMARY (Wikipedia) ===
-async function fetchWineSummary(query) {
-  if (!query) return null;
-  for (const lang of ['de', 'en']) {
-    try {
-      const searchRes = await fetch('https://' + lang + '.wikipedia.org/w/api.php?action=opensearch&search=' + encodeURIComponent(query) + '&limit=1&namespace=0&format=json&origin=*');
-      const searchData = await searchRes.json();
-      const title = searchData[1] && searchData[1][0];
-      if (!title) continue;
-      const sumRes = await fetch('https://' + lang + '.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title));
-      const sumData = await sumRes.json();
-      if (sumData.extract) return sumData.extract;
-    } catch (e) { /* try next language */ }
-  }
-  return null;
-}
-
-// === LABEL SCAN: CAPTURE, OCR, FILL FORM ===
+// === LABEL SCAN: CAPTURE + VISION-KI ===
 function handleLabelSelected(event) {
   const file = event.target.files[0];
   event.target.value = '';
   if (!file) return;
 
-  if (typeof Tesseract === 'undefined') {
-    setLabelStatus('Texterkennung konnte nicht geladen werden (keine Internetverbindung oder durch einen Inhaltsblocker verhindert?). Bitte Felder manuell ausfüllen.', 'warn');
+  const apiKey = getGeminiKey();
+  if (!apiKey) {
+    setLabelStatus('Kein Gemini-API-Key hinterlegt. Bitte unter Statistik → "Etikett-Scan (KI)" einen kostenlosen Key hinterlegen.', 'warn');
     return;
   }
 
@@ -1648,44 +1621,135 @@ function handleLabelSelected(event) {
       updatePhotoPreview();
     });
 
-    setLabelStatus('Etikett wird gelesen...', 'info');
-    Tesseract.recognize(ev.target.result, 'deu+eng')
-      .then(result => processLabelText(result.data.text))
-      .catch(() => setLabelStatus('Etikett konnte nicht gelesen werden. Bitte Felder manuell ausfüllen.', 'warn'));
+    setLabelStatus('Etikett wird analysiert...', 'info');
+    resizePhoto(ev.target.result, 1568, 0.9, (analysisDataUrl) => {
+      analyzeLabelWithGemini(analysisDataUrl, apiKey);
+    });
   };
   reader.readAsDataURL(file);
 }
 
-async function processLabelText(rawText) {
-  const lines = parseLabelLines(rawText);
-  if (!lines.length) {
-    setLabelStatus('Auf dem Etikett wurde kein Text erkannt. Bitte Felder manuell ausfüllen.', 'warn');
-    return;
+async function analyzeLabelWithGemini(dataUrl, apiKey) {
+  const base64 = dataUrl.split(',')[1];
+  const prompt = 'Du bekommst das Foto eines Weinflaschen-Etiketts. Deine einzige Aufgabe ist es, den Text, der TATSÄCHLICH auf dem Etikett gedruckt oder geschrieben steht, abzulesen.\n\n' +
+    'WICHTIGE REGELN:\n' +
+    '- Lies NUR, was wirklich auf dem Etikett zu sehen ist. Erfinde, rate oder ergänze NICHTS.\n' +
+    '- Nutze KEIN Allgemeinwissen über Weine/Weingüter, um Felder zu füllen, die nicht auf dem Etikett stehen.\n' +
+    '- Wenn ein Feld nicht klar lesbar oder nicht auf dem Etikett vorhanden ist, setze es auf null. Ein null ist immer besser als eine geratene Angabe.\n' +
+    '- Wenn Text unscharf, winzig oder in einer schwer lesbaren Schrift ist und du dir nicht sicher bist, setze das Feld auf null statt zu raten.\n\n' +
+    'Gib ein JSON-Objekt mit genau diesen Feldern zurück:\n' +
+    '{"winery": "Name des Weinguts/Produzenten, Wörtlich wie auf dem Etikett gedruckt, oder null", ' +
+    '"name": "Name des Weins/der Cuvée (ohne Weingut-Namen), wörtlich wie auf dem Etikett gedruckt, oder null", ' +
+    '"vintage": "Jahrgang als 4-stellige Zahl, NUR wenn er wörtlich auf dem Etikett steht, sonst null", ' +
+    '"grape": "Rebsorte(n), NUR wenn wörtlich auf dem Etikett genannt, sonst null", ' +
+    '"country": "Herkunftsland auf Deutsch, NUR wenn auf dem Etikett erkennbar (z.B. \'Product of France\', \'Erzeugt in Deutschland\'), sonst null", ' +
+    '"region": "Anbauregion/Appellation, NUR wenn wörtlich auf dem Etikett genannt, sonst null", ' +
+    '"category": "einer von: Rotwein, Weißwein, Rosé, Schaumwein, Süßwein, Sonstiges — nur wenn aus Farbe/Aufschrift eindeutig erkennbar, sonst null", ' +
+    '"summary": "Kurze, sachliche Beschreibung des Weinguts/Weins in 1-2 Sätzen auf Deutsch, NUR falls dir dieses konkrete Weingut mit hoher Sicherheit bekannt ist, sonst null"}\n\n' +
+    'Antworte NUR mit dem JSON-Objekt, keine Erklärung, kein Markdown.';
+
+  try {
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(apiKey), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: 'image/jpeg', data: base64 } }] }],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0,
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              winery: { type: 'STRING', nullable: true },
+              name: { type: 'STRING', nullable: true },
+              vintage: { type: 'INTEGER', nullable: true },
+              grape: { type: 'STRING', nullable: true },
+              country: { type: 'STRING', nullable: true },
+              region: { type: 'STRING', nullable: true },
+              category: { type: 'STRING', nullable: true },
+              summary: { type: 'STRING', nullable: true }
+            }
+          }
+        }
+      })
+    });
+
+    if (res.status === 400 || res.status === 403) {
+      setLabelStatus('API-Key ungültig oder abgelehnt. Bitte unter Statistik prüfen.', 'warn');
+      return;
+    }
+    if (res.status === 429) {
+      setLabelStatus('Tageslimit der kostenlosen KI-Nutzung erreicht. Bitte später erneut versuchen.', 'warn');
+      return;
+    }
+    if (!res.ok) {
+      setLabelStatus('Etikett-Analyse fehlgeschlagen (Serverfehler). Bitte manuell ausfüllen.', 'warn');
+      return;
+    }
+
+    const data = await res.json();
+    const text = data.candidates && data.candidates[0] && data.candidates[0].content.parts[0].text;
+    if (!text) {
+      setLabelStatus('Etikett-Analyse lieferte keine Antwort. Bitte manuell ausfüllen.', 'warn');
+      return;
+    }
+
+    let info;
+    try {
+      info = JSON.parse(text);
+    } catch (e) {
+      setLabelStatus('Antwort konnte nicht gelesen werden. Bitte manuell ausfüllen.', 'warn');
+      return;
+    }
+
+    applyLabelInfo(info);
+  } catch (e) {
+    setLabelStatus('Etikett-Analyse fehlgeschlagen (keine Verbindung?). Bitte manuell ausfüllen.', 'warn');
+  }
+}
+
+function applyLabelInfo(info) {
+  let filledAny = false;
+
+  if (info.winery && !document.getElementById('w-winery').value) {
+    document.getElementById('w-winery').value = info.winery;
+    filledAny = true;
+  }
+  if (info.name && !document.getElementById('w-name').value) {
+    document.getElementById('w-name').value = info.name;
+    filledAny = true;
+  }
+  if (info.vintage && !document.getElementById('w-vintage').value) {
+    document.getElementById('w-vintage').value = info.vintage;
+    filledAny = true;
+  }
+  if (info.grape && !document.getElementById('w-grape').value) {
+    document.getElementById('w-grape').value = info.grape;
+    filledAny = true;
+  }
+  if (info.region && !document.getElementById('w-region').value) {
+    document.getElementById('w-region').value = info.region;
+    filledAny = true;
+  }
+  if (info.country && !document.getElementById('w-country').value) {
+    const matchedCountry = Object.keys(COUNTRY_FLAGS).find(c => c.toLowerCase() === String(info.country).toLowerCase());
+    const countryValue = matchedCountry || info.country;
+    document.getElementById('w-country').value = countryValue;
+    document.getElementById('w-country-search').value = countryValue;
+    filledAny = true;
+  }
+  if (info.category && ['Rotwein', 'Weißwein', 'Rosé', 'Schaumwein', 'Süßwein', 'Sonstiges'].includes(info.category)) {
+    document.getElementById('w-category').value = info.category;
+    filledAny = true;
+  }
+  if (info.summary && !document.getElementById('w-notes').value) {
+    document.getElementById('w-notes').value = info.summary;
   }
 
-  const fullText = lines.join(' ');
-  const vintage = guessVintage(fullText);
-  const grape = guessGrape(fullText);
-  const category = guessCategory(fullText);
-  const wineryLine = lines.find(l => WINERY_PREFIX_RE.test(l));
-  const nameLine = lines.find(l => l !== wineryLine) || lines[0];
-
-  if (wineryLine && !document.getElementById('w-winery').value) document.getElementById('w-winery').value = wineryLine;
-  if (nameLine && !document.getElementById('w-name').value) document.getElementById('w-name').value = nameLine;
-  if (vintage && !document.getElementById('w-vintage').value) document.getElementById('w-vintage').value = vintage;
-  if (grape && !document.getElementById('w-grape').value) document.getElementById('w-grape').value = grape;
-  if (category) document.getElementById('w-category').value = category;
-
-  setLabelStatus('Etikett gelesen. Suche Zusatzinfos online...', 'info');
-
-  const query = (wineryLine || nameLine || lines[0]).trim();
-  const summary = await fetchWineSummary(query);
-  if (summary) {
-    const notesField = document.getElementById('w-notes');
-    if (!notesField.value) notesField.value = summary;
-    setLabelStatus('Etikett gelesen, Zusatzinfos aus dem Web ergänzt. Bitte alle Felder prüfen.', 'info');
+  if (filledAny) {
+    setLabelStatus('Etikett erkannt. Bitte alle Felder prüfen.', 'info');
   } else {
-    setLabelStatus('Etikett gelesen. Keine Zusatzinfos im Web gefunden – bitte Felder prüfen und ergänzen.', 'warn');
+    setLabelStatus('Etikett konnte nicht eindeutig erkannt werden. Bitte manuell ausfüllen.', 'warn');
   }
 }
 
@@ -2260,9 +2324,33 @@ function deleteWine() {
 // === STATS ===
 function renderStats() {
   const content = document.getElementById('stats-content');
+  const geminiKey = getGeminiKey();
+  const geminiSettingsHtml = `
+    <div class="card" style="margin-top: 12px;">
+      <div class="card-title">Etikett-Scan (KI)</div>
+      <p style="font-size: 13px; color: var(--text-dim); line-height: 1.5; margin-bottom: 10px;">
+        Für die Etikett-Erkennung wird ein kostenloser Google-Gemini-API-Key benötigt. Kostenlos erstellen unter
+        <a href="https://aistudio.google.com/apikey" target="_blank" style="color: var(--accent);">aistudio.google.com/apikey</a>.
+        Der Key wird nur lokal in deinem Browser gespeichert.
+      </p>
+      ${geminiKey ? `
+        <div class="key-value" style="margin-bottom: 8px;">
+          <span class="key">Aktueller Key</span>
+          <span class="val">&bull;&bull;&bull;&bull;${escapeHtml(geminiKey.slice(-4))}</span>
+        </div>
+      ` : ''}
+      <div class="form-group" style="margin-bottom: 8px;">
+        <input type="password" id="gemini-key-input" placeholder="${geminiKey ? 'Neuen Key eingeben zum Ändern' : 'API-Key einfügen...'}">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="saveGeminiKey()">Speichern</button>
+        ${geminiKey ? `<button class="btn btn-danger" onclick="clearGeminiKey()">Entfernen</button>` : ''}
+      </div>
+    </div>
+  `;
 
   if (wines.length === 0) {
-    content.innerHTML = '<div class="empty-state"><div class="emoji">&#128202;</div><p>Noch keine Weine erfasst.<br>Statistiken erscheinen, sobald du Weine hinzufuegst.</p></div>';
+    content.innerHTML = '<div class="empty-state"><div class="emoji">&#128202;</div><p>Noch keine Weine erfasst.<br>Statistiken erscheinen, sobald du Weine hinzufuegst.</p></div>' + geminiSettingsHtml;
     return;
   }
 
@@ -2337,6 +2425,8 @@ function renderStats() {
       <button class="btn btn-secondary" onclick="exportData()">Als JSON exportieren</button>
       <button class="btn btn-secondary" onclick="importData()" style="margin-top: 8px;">JSON importieren</button>
     </div>
+
+    ${geminiSettingsHtml}
   `;
 }
 
