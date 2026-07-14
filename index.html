@@ -504,7 +504,7 @@
     object-fit: cover;
     flex-shrink: 0;
     background: rgba(var(--accent-rgb), 0.12);
-    margin-left: -10px;
+    margin-left: -12px;
   }
 
   .wine-thumb-placeholder {
@@ -764,25 +764,30 @@
     margin: 0 auto 16px;
   }
 
-  .modal-detail-header {
-    position: sticky;
-    top: calc(-24px - env(safe-area-inset-top));
-    z-index: 20;
+  .modal-hero-toolbar {
+    position: fixed;
+    top: calc(10px + env(safe-area-inset-top));
+    left: 0;
+    right: 0;
+    z-index: 30;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: calc(-24px - env(safe-area-inset-top)) -20px 0;
-    padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    pointer-events: none;
+  }
+
+  .modal-hero-toolbar .modal-icon-btn,
+  .modal-hero-toolbar .modal-menu-wrap {
+    pointer-events: auto;
   }
 
   .modal-hero {
     position: relative;
-    margin: 12px -20px 16px;
-    height: 42vh;
-    max-height: 340px;
-    min-height: 200px;
+    margin: calc(-24px - env(safe-area-inset-top)) -20px 16px;
+    height: 46vh;
+    max-height: 380px;
+    min-height: 220px;
     background-size: cover;
     background-position: center;
     background-color: var(--bg-card);
@@ -981,8 +986,8 @@
   }
 
   .modal-icon-btn {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     color: var(--text);
     font-size: 16px;
     cursor: pointer;
@@ -994,6 +999,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
   }
 
   .modal-icon-btn:active { opacity: 0.7; }
@@ -2061,7 +2067,7 @@ function openWine(id) {
   const totalCost = w.history.filter(h => h.type === 'buy').reduce((s, h) => s + (h.price || 0) * (h.quantity || 0), 0);
 
   document.getElementById('modal-body').innerHTML = `
-    <div class="modal-detail-header">
+    <div class="modal-hero-toolbar">
       <button class="modal-icon-btn" onclick="closeModal()" aria-label="Zur&uuml;ck">&larr;</button>
       <div class="modal-menu-wrap">
         <button class="modal-icon-btn" onclick="toggleWineMenu(event)" aria-label="Mehr">&#8942;</button>
