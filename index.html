@@ -115,7 +115,7 @@
   }
 
   /* Pages */
-  .page { display: none; padding: 16px; max-width: 720px; margin: 0 auto; }
+  .page { display: none; padding: 16px 12px; max-width: 720px; margin: 0 auto; }
   .page.active { display: block; }
 
   /* Cards */
@@ -482,13 +482,13 @@
     background: transparent;
     border-radius: 0;
     border-bottom: 1px solid var(--border);
-    padding: 12px 2px;
+    padding: 12px 0;
     margin-bottom: 0;
     cursor: pointer;
     position: relative;
     display: flex;
     gap: 12px;
-    align-items: center;
+    align-items: stretch;
     overflow: visible;
     box-shadow: none;
   }
@@ -498,13 +498,13 @@
   .wine-item.empty { opacity: 0.55; }
 
   .wine-thumb {
-    width: 44px;
-    height: 44px;
-    align-self: center;
-    border-radius: 9px;
+    width: 72px;
+    align-self: stretch;
+    border-radius: 10px;
     object-fit: cover;
     flex-shrink: 0;
     background: rgba(var(--accent-rgb), 0.12);
+    margin-left: -10px;
   }
 
   .wine-thumb-placeholder {
@@ -514,8 +514,8 @@
   }
 
   .wine-thumb-placeholder svg {
-    width: 20px;
-    height: 20px;
+    width: 26px;
+    height: 26px;
     color: var(--accent);
   }
 
@@ -744,6 +744,18 @@
     padding: 24px 20px calc(40px + env(safe-area-inset-bottom));
   }
 
+  #wine-modal { align-items: stretch; }
+
+  #wine-modal .modal-content {
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding-top: calc(24px + env(safe-area-inset-top));
+  }
+
   .modal-handle {
     width: 36px;
     height: 5px;
@@ -752,6 +764,65 @@
     margin: 0 auto 16px;
   }
 
+  .modal-detail-header {
+    position: sticky;
+    top: calc(-24px - env(safe-area-inset-top));
+    z-index: 20;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: calc(-24px - env(safe-area-inset-top)) -20px 0;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-hero {
+    position: relative;
+    margin: 12px -20px 16px;
+    height: 42vh;
+    max-height: 340px;
+    min-height: 200px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--bg-card);
+    overflow: hidden;
+  }
+
+  .modal-hero-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--accent-rgb), 0.12);
+  }
+
+  .modal-hero-placeholder svg {
+    width: 64px;
+    height: 64px;
+    color: var(--accent);
+  }
+
+  .modal-hero-scrim {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 60%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+    pointer-events: none;
+  }
+
+  .modal-hero-title {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 16px;
+  }
+
+  .modal-hero-title .modal-title-winery { color: rgba(255, 255, 255, 0.85); }
+  .modal-hero-title .modal-title-name { color: #ffffff; }
+  .modal-hero-title .modal-title-stars .empty { color: rgba(255, 255, 255, 0.35); }
+
   .modal-title {
     margin-bottom: 16px;
     display: flex;
@@ -759,8 +830,6 @@
     align-items: flex-start;
     gap: 12px;
   }
-
-  .modal-title-group { min-width: 0; flex: 1; }
 
   .modal-title-winery {
     font-size: 18px;
@@ -909,13 +978,6 @@
     height: 30px;
     border-radius: 50%;
     line-height: 1;
-  }
-
-  .modal-toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 14px;
   }
 
   .modal-icon-btn {
@@ -1207,26 +1269,6 @@
 <!-- WINE DETAIL MODAL -->
 <div class="modal" id="wine-modal">
   <div class="modal-content">
-    <div class="modal-handle"></div>
-    <div class="modal-toolbar">
-      <button class="modal-icon-btn" onclick="closeModal()" aria-label="Zur&uuml;ck">&larr;</button>
-      <div class="modal-menu-wrap">
-        <button class="modal-icon-btn" onclick="toggleWineMenu(event)" aria-label="Mehr">&#8942;</button>
-        <div class="modal-menu" id="wine-menu">
-          <button type="button" onclick="closeWineMenu(); editWine(currentWineId);">Bearbeiten</button>
-          <button type="button" class="modal-menu-danger" onclick="closeWineMenu(); deleteWine();">L&ouml;schen</button>
-        </div>
-      </div>
-    </div>
-    <div class="modal-title">
-      <div class="modal-title-group">
-        <div id="modal-title-winery" class="modal-title-winery"></div>
-        <div class="modal-title-name-row">
-          <div id="modal-title-name" class="modal-title-name">Wein Details</div>
-          <div id="modal-title-stars" class="modal-title-stars"></div>
-        </div>
-      </div>
-    </div>
     <div id="modal-body"></div>
   </div>
 </div>
@@ -1997,11 +2039,6 @@ function openWine(id) {
   currentWineId = id;
   closeWineMenu();
 
-  document.getElementById('modal-title-winery').textContent = w.winery || '';
-  document.getElementById('modal-title-winery').style.display = w.winery ? 'block' : 'none';
-  document.getElementById('modal-title-name').textContent = w.name;
-  document.getElementById('modal-title-stars').innerHTML = starsDisplay(w.rating);
-
   migrateHistory(w);
 
   const sortedHistory = w.history.map((h, i) => ({ h, i })).sort((a, b) => {
@@ -2024,7 +2061,28 @@ function openWine(id) {
   const totalCost = w.history.filter(h => h.type === 'buy').reduce((s, h) => s + (h.price || 0) * (h.quantity || 0), 0);
 
   document.getElementById('modal-body').innerHTML = `
-    ${w.photo ? `<img src="${w.photo}" alt="" style="width:100%; max-height:240px; object-fit:cover; border-radius:14px; margin-bottom:12px; border:1px solid var(--border);">` : ''}
+    <div class="modal-detail-header">
+      <button class="modal-icon-btn" onclick="closeModal()" aria-label="Zur&uuml;ck">&larr;</button>
+      <div class="modal-menu-wrap">
+        <button class="modal-icon-btn" onclick="toggleWineMenu(event)" aria-label="Mehr">&#8942;</button>
+        <div class="modal-menu" id="wine-menu">
+          <button type="button" onclick="closeWineMenu(); editWine(currentWineId);">Bearbeiten</button>
+          <button type="button" class="modal-menu-danger" onclick="closeWineMenu(); deleteWine();">L&ouml;schen</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-hero" style="${w.photo ? `background-image: url('${w.photo}');` : ''}">
+      ${!w.photo ? `<div class="modal-hero-placeholder">${bottleIconSvg()}</div>` : ''}
+      <div class="modal-hero-scrim"></div>
+      <div class="modal-hero-title">
+        ${w.winery ? `<div class="modal-title-winery">${escapeHtml(w.winery)}</div>` : ''}
+        <div class="modal-title-name-row">
+          <div class="modal-title-name">${escapeHtml(w.name)}</div>
+          <div class="modal-title-stars">${starsDisplay(w.rating)}</div>
+        </div>
+      </div>
+    </div>
 
     <div class="btn-row" style="margin-bottom: 12px;">
       <button class="btn btn-secondary" onclick="showEntryForm('open')" ${w.quantity > 0 ? '' : 'disabled'}>Bestand reduzieren</button>
@@ -2154,11 +2212,13 @@ function closeModal() {
 
 function toggleWineMenu(e) {
   if (e) e.stopPropagation();
-  document.getElementById('wine-menu').classList.toggle('show');
+  const menu = document.getElementById('wine-menu');
+  if (menu) menu.classList.toggle('show');
 }
 
 function closeWineMenu() {
-  document.getElementById('wine-menu').classList.remove('show');
+  const menu = document.getElementById('wine-menu');
+  if (menu) menu.classList.remove('show');
 }
 
 document.addEventListener('click', (e) => {
