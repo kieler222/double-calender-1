@@ -1813,6 +1813,7 @@ function openScanner() {
   }
 
   document.getElementById('scanner-modal').classList.add('show');
+  lockBodyScroll();
 
   let settled = false;
   const stuckTimeout = setTimeout(() => {
@@ -1865,6 +1866,7 @@ function openScanner() {
 
 function closeScanner() {
   document.getElementById('scanner-modal').classList.remove('show');
+  unlockBodyScroll();
   if (scanner) {
     scanner.stop().then(() => scanner.clear()).catch(() => {});
     scanner = null;
@@ -2038,6 +2040,15 @@ function renderWines() {
   }).join('');
 }
 
+// === MODAL: BODY SCROLL LOCK ===
+function lockBodyScroll() {
+  document.body.style.overflow = 'hidden';
+}
+
+function unlockBodyScroll() {
+  document.body.style.overflow = '';
+}
+
 // === WINE DETAIL MODAL ===
 function openWine(id) {
   const w = wines.find(x => x.id === id);
@@ -2171,6 +2182,7 @@ function openWine(id) {
   `;
 
   document.getElementById('wine-modal').classList.add('show');
+  lockBodyScroll();
 }
 
 function migrateHistory(w) {
@@ -2214,6 +2226,7 @@ function closeModal() {
   document.getElementById('wine-modal').classList.remove('show');
   currentWineId = null;
   closeWineMenu();
+  unlockBodyScroll();
 }
 
 function toggleWineMenu(e) {
